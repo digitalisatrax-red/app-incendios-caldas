@@ -6,81 +6,168 @@
 <title>Operaciones de campo — Incendios Caldas</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
-:root{--ink:#1f2937;--mut:#6b7280;--line:#e5e7eb;--bg:#f5f7fa;--card:#fff;--pri:#0b5cab;--pri2:#e8f1fb;--red:#c62828;--amb:#d97706;--grn:#2e7d32}
-*{box-sizing:border-box}body{margin:0;font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--bg)}
-header{background:#fff;border-bottom:1px solid var(--line);padding:10px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:20}
-header h1{font-size:17px;margin:0}header small{color:var(--mut);display:block;font-size:12px}
-.brand{font-weight:700;color:var(--pri);border-right:1px solid var(--line);padding-right:14px;font-size:13px;line-height:1.2}
-nav{display:flex;gap:4px;margin-left:12px;flex-wrap:wrap}nav button{border:0;background:none;padding:8px 14px;border-radius:6px;font:inherit;cursor:pointer;color:var(--mut);position:relative}
-nav button.on{background:var(--pri2);color:var(--pri);font-weight:600}nav .bd{background:var(--red);color:#fff;border-radius:9px;font-size:11px;padding:1px 6px;margin-left:5px}
-.sp{flex:1}.who{font-size:12px;color:var(--mut);text-align:right}
-main{padding:18px 20px;max-width:1500px;margin:auto}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px}.kpi b{font-size:26px;display:block}.kpi span{color:var(--mut);font-size:12px}
-.kpi.al b{color:var(--red)}
-.grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px}@media(max-width:980px){.grid{grid-template-columns:1fr}}
-.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:14px}.card h3{margin:0 0 10px;font-size:14px}
-#map{height:430px;border-radius:6px;z-index:0}
-table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;color:var(--mut);font-weight:600;border-bottom:1px solid var(--line);padding:7px 6px;position:sticky;top:0;background:#fff}td{padding:7px 6px;border-bottom:1px solid #f0f2f5;vertical-align:top}
-tr:hover td{background:#fafcff}.tw{max-height:560px;overflow:auto}
-.tag{display:inline-block;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:600}.t-activo,.t-alta,.t-nueva,.t-sos{background:#fde8e8;color:var(--red)}.t-controlado,.t-media,.t-asignada,.t-en_camino,.t-pendiente{background:#fff3e0;color:var(--amb)}.t-extinguido,.t-baja,.t-validado,.t-verificada{background:#e6f4ea;color:var(--grn)}.t-rechazado,.t-descartada{background:#eee;color:#555}
-button.b,select,input,textarea{font:inherit}button.b{border:1px solid var(--pri);background:#fff;color:var(--pri);border-radius:6px;padding:4px 10px;cursor:pointer;margin:1px}button.b.p{background:var(--pri);color:#fff}button.b.r{border-color:var(--red);color:var(--red)}
-select,input,textarea{border:1px solid #cbd5e1;border-radius:6px;padding:6px 8px}
-.bar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
-.chat{display:grid;grid-template-columns:260px 1fr;gap:14px;height:calc(100vh - 150px);min-height:420px}@media(max-width:800px){.chat{grid-template-columns:1fr;height:auto}}
-.chs{background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:auto}.ch{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer}.ch.on{background:var(--pri2)}.ch small{color:var(--mut);display:block}
-.cp{background:var(--card);border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;min-height:0}.cm{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:240px}
-.m{max-width:75%;background:#f1f5f9;border-radius:10px;padding:7px 10px}.m.me{align-self:flex-end;background:var(--pri2)}.m.sos{background:#fde8e8;border:1px solid var(--red)}.m small{color:var(--mut);display:block;font-size:11px}
+:root{--ink:#1f2937;--mut:#6b7280;--line:#e5e7eb;--bg:#f3f4f6;--card:#fff;--pri:#1f5f8b;--pri2:#e8f1f8;--red:#e15759;--amb:#f28e2b;--grn:#59a14f;--blu:#4e79a7;--tea:#76b7b2;--yel:#edc948;--pur:#b07aa1}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;font:14px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+button,select,input,textarea{font:inherit;color:inherit}
+.hide{display:none!important}
+/* encabezado */
+header{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30}
+.top{display:flex;align-items:center;gap:16px;padding:10px 22px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;padding-right:16px;border-right:1px solid var(--line)}
+.brand .esc{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#1f5f8b,#59a14f);display:grid;place-items:center;color:#fff;font-weight:800}
+.brand b{font-size:13px;line-height:1.15;color:var(--pri)}
+.ttl h1{margin:0;font-size:18px;font-weight:700}.ttl small{color:var(--mut)}
+.sp{flex:1}
+.live{display:flex;align-items:center;gap:6px;color:var(--mut);font-size:12px}.live i{width:9px;height:9px;border-radius:50%;background:var(--grn);animation:p 1.6s infinite}.live.off i{background:var(--amb);animation:none}
+@keyframes p{50%{opacity:.3}}
+.who{font-size:12px;color:var(--mut);text-align:right}.who a{color:var(--pri);text-decoration:none;font-weight:600}
+nav{display:flex;gap:2px;padding:0 18px;overflow-x:auto;border-top:1px solid var(--line)}
+nav button{border:0;background:none;padding:11px 16px;cursor:pointer;color:var(--mut);font-weight:600;border-bottom:3px solid transparent;white-space:nowrap}
+nav button.on{color:var(--pri);border-bottom-color:var(--pri)}
+.bd{background:var(--red);color:#fff;border-radius:10px;font-size:11px;padding:1px 7px;margin-left:5px}
+/* filtros */
+.filt{display:flex;gap:10px;align-items:center;padding:10px 22px;background:#fafbfc;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.filt label{font-size:12px;color:var(--mut);display:flex;align-items:center;gap:6px}
+select,input[type=search],input[type=text],input[type=email],input[type=password]{border:1px solid #cfd6df;border-radius:6px;padding:6px 9px;background:#fff}
+main{padding:18px 22px 30px;max-width:1600px;margin:auto}
+/* tarjetas */
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+.card h3{margin:0 0 4px;font-size:14px;font-weight:700}.card .sub{color:var(--mut);font-size:12px;margin-bottom:10px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:#fff;border:1px solid var(--line);border-left:4px solid var(--c,var(--blu));border-radius:10px;padding:12px 14px}
+.kpi b{font-size:28px;line-height:1.1;display:block}.kpi span{color:var(--mut);font-size:12px}.kpi em{font-style:normal;font-size:12px;font-weight:700}
+.up{color:var(--red)}.dn{color:var(--grn)}
+.g2{display:grid;grid-template-columns:1.7fr 1fr;gap:16px}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:1000px){.g2,.g3{grid-template-columns:1fr}}
+#map{height:460px;border-radius:8px;z-index:0}
+.maptb{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;font-size:12px;color:var(--mut)}
+.maptb label{display:flex;align-items:center;gap:4px;cursor:pointer}
+/* gráficas */
+.hb div{display:grid;grid-template-columns:120px 1fr 34px;align-items:center;gap:8px;margin:5px 0;font-size:12px}
+.hb span{color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hb i{display:block;height:16px;border-radius:3px;background:var(--blu)}.hb b{text-align:right}
+.donut{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.donut .ring{width:130px;height:130px;border-radius:50%;position:relative;flex:none}
+.donut .ring:after{content:attr(data-t);position:absolute;inset:26px;background:#fff;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:20px}
+.lg div{display:flex;align-items:center;gap:7px;font-size:12px;margin:3px 0}.lg i{width:11px;height:11px;border-radius:2px;display:inline-block}
+svg text{font:11px "Segoe UI",system-ui,sans-serif;fill:#6b7280}
+/* tablas */
+.bar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.btn{border:1px solid var(--pri);background:#fff;color:var(--pri);border-radius:6px;padding:6px 12px;cursor:pointer;font-weight:600}
+.btn.p{background:var(--pri);color:#fff}.btn.r{border-color:var(--red);color:var(--red)}.btn.s{padding:3px 9px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:default}
+.tw{overflow:auto;max-height:620px;border:1px solid var(--line);border-radius:8px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:#4b5563;font-weight:700;background:#f8fafc;border-bottom:1px solid var(--line);padding:9px 10px;position:sticky;top:0;white-space:nowrap;cursor:pointer;user-select:none}
+td{padding:9px 10px;border-bottom:1px solid #f1f3f6;vertical-align:top}tbody tr:hover td{background:#f8fbff}tr.clk{cursor:pointer}
+.tag{display:inline-block;border-radius:999px;padding:1px 9px;font-size:11.5px;font-weight:700;border:1px solid var(--c,#9ca3af);color:var(--c,#6b7280);background:#fff;text-transform:capitalize}
+.cnt{color:var(--mut);font-size:12px;margin-left:auto}
+/* detalle */
+.dr{position:fixed;top:0;right:0;width:min(460px,100%);height:100%;background:#fff;border-left:1px solid var(--line);box-shadow:-6px 0 24px #0002;z-index:60;overflow:auto;padding:18px;transform:translateX(100%);transition:.2s}.dr.on{transform:none}
+.dr h2{margin:0 0 4px;font-size:18px}.dr dl{display:grid;grid-template-columns:120px 1fr;gap:6px 10px;margin:12px 0}.dr dt{color:var(--mut);font-size:12px}.dr dd{margin:0}
+.ph{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.ph img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+.x{float:right;border:0;background:none;font-size:24px;cursor:pointer;color:var(--mut)}
+/* chat */
+.chat{display:grid;grid-template-columns:300px 1fr;gap:16px;height:calc(100vh - 230px);min-height:460px}@media(max-width:850px){.chat{grid-template-columns:1fr;height:auto}}
+.chs,.cp{background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden}.chs{overflow:auto}
+.ch{padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer}.ch.on{background:var(--pri2)}.ch small{display:block;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cp{display:flex;flex-direction:column;min-height:0}.cm{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:8px;min-height:260px;background:#f8fafc}
+.m{max-width:75%;background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 11px}.m.me{align-self:flex-end;background:var(--pri2);border-color:#cfe1ee}.m.sos{background:#fdecec;border-color:var(--red)}.m small{display:block;color:var(--mut);font-size:11px}
 .cf{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}.cf input{flex:1}
-#login{max-width:340px;margin:12vh auto;background:#fff;border:1px solid var(--line);border-radius:10px;padding:22px}#login input{width:100%;margin:6px 0}#login .b{width:100%;padding:9px}
-.bars div{display:flex;align-items:center;gap:8px;margin:4px 0}.bars i{display:block;height:14px;background:var(--pri);border-radius:3px}.bars span{width:110px;color:var(--mut);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-footer{color:var(--mut);font-size:12px;text-align:center;padding:16px}
-.hide{display:none!important}.err{color:var(--red);font-size:13px}
-@media print{header nav,header .sp,.bar,button,.cf,footer .no{display:none!important}header{position:static}}
+#login{max-width:360px;margin:12vh auto;background:#fff;border:1px solid var(--line);border-radius:12px;padding:26px}#login input{width:100%;margin:6px 0;padding:9px}#login .btn{width:100%;padding:10px}
+.err{color:var(--red);font-size:13px;margin-top:6px}
+footer{color:var(--mut);font-size:12px;text-align:center;padding:16px 10px 28px}
+/* informe */
+.rep h2{margin:0}.rep .meta{color:var(--mut);font-size:12px;margin-bottom:12px}
+.rephead{display:flex;align-items:center;gap:12px;border-bottom:3px solid var(--pri);padding-bottom:10px;margin-bottom:14px}
+@media print{
+  @page{margin:12mm}
+  body{background:#fff}header,.filt,.bar,.btn,footer .no,#dr,.dr{display:none!important}
+  body.printing main>section:not(#t-informe){display:none!important}
+  main{padding:0;max-width:none}.card,.kpi{break-inside:avoid;border-color:#ccc}.tw{max-height:none;overflow:visible;border:0}
+}
 </style>
 </head>
 <body>
 <div id="login" class="hide">
-  <div class="brand" style="border:0;font-size:15px">Gobernación de Caldas</div>
-  <h2 style="margin:6px 0 2px">Operaciones de campo</h2><small style="color:var(--mut)">Incendios y guardabosques · acceso del equipo</small>
+  <div style="display:flex;gap:10px;align-items:center"><div class="brand" style="border:0;padding:0"><div class="esc">G</div><b>Gobernación<br>de Caldas</b></div></div>
+  <h2 style="margin:12px 0 2px">Operaciones de campo</h2><small style="color:var(--mut)">Incendios y guardabosques · acceso del equipo</small>
   <input id="em" type="email" placeholder="Correo"><input id="pw" type="password" placeholder="Contraseña">
-  <button class="b p" id="go">Entrar</button><div class="err" id="le"></div>
+  <button class="btn p" id="go">Entrar</button><div class="err" id="le"></div>
 </div>
 
 <div id="app" class="hide">
 <header>
-  <div class="brand">Gobernación<br>de Caldas</div>
-  <div><h1>Operaciones de campo · Incendios</h1><small>Panel vinculado a la app Incendios Caldas</small></div>
+  <div class="top">
+    <div class="brand"><div class="esc">G</div><b>Gobernación<br>de Caldas</b></div>
+    <div class="ttl"><h1>Operaciones de campo · Incendios</h1><small>Lo que se está reportando en el territorio, en vivo</small></div>
+    <div class="sp"></div>
+    <div class="live" id="live"><i></i><span id="liveT">Conectando…</span></div>
+    <button class="btn s" id="refresh">Actualizar</button>
+    <div class="who"><span id="who"></span><br><a href="#" id="out">Salir</a> · <a href="./" target="_blank">Abrir la app</a></div>
+  </div>
   <nav id="nav">
-    <button data-t="resumen" class="on">Resumen</button><button data-t="reportes">Reportes</button>
-    <button data-t="alertas">Alertas <span class="bd hide" id="bAl"></span></button>
-    <button data-t="chat">Chat <span class="bd hide" id="bCh"></span></button><button data-t="equipo">Equipo</button>
+    <button data-t="resumen" class="on">Resumen</button><button data-t="reportes">Reportes <span class="bd hide" id="bRe"></span></button>
+    <button data-t="alertas">Alertas <span class="bd hide" id="bAl"></span></button><button data-t="chat">Chat <span class="bd hide" id="bCh"></span></button>
+    <button data-t="equipo">Equipo</button><button data-t="informe">Informe</button>
   </nav>
-  <div class="sp"></div>
-  <div class="who"><span id="who"></span><br><a href="#" id="out">Salir</a> · <a href="./" target="_blank">Abrir la app</a></div>
 </header>
+<div class="filt" id="filt">
+  <label>Período <select id="fPer"><option value="7">Últimos 7 días</option><option value="30" selected>Últimos 30 días</option><option value="90">Últimos 90 días</option><option value="365">Último año</option><option value="0">Todo el tiempo</option></select></label>
+  <label>Municipio <select id="fMun"><option value="">Todos</option></select></label>
+  <label>Origen <select id="fOri"><option value="">App y QField</option><option value="app">App de guardabosques</option><option value="qfield">QField</option></select></label>
+  <span class="cnt" id="fCnt"></span>
+</div>
 <main>
   <section id="t-resumen">
     <div class="kpis" id="kpis"></div>
-    <div class="grid"><div class="card"><h3>Mapa en vivo</h3><div class="bar" id="mapf"></div><div id="map"></div></div>
-    <div><div class="card"><h3>Reportes por municipio</h3><div class="bars" id="gMun"></div></div><div class="card"><h3>Reportes últimos 14 días</h3><div class="bars" id="gDia"></div></div></div></div>
+    <div class="g2">
+      <div class="card"><h3>Mapa en vivo</h3><div class="sub">Incendios, alertas abiertas y posición del equipo</div>
+        <div class="maptb" id="mapf"></div><div id="map"></div></div>
+      <div>
+        <div class="card"><h3>Estado de los incendios</h3><div class="sub">Según el estado reportado</div><div id="gEst"></div></div>
+        <div class="card"><h3>Municipios con más reportes</h3><div class="sub">En el período</div><div class="hb" id="gMun"></div></div>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="card"><h3>Reportes por día</h3><div class="sub">Incendios reportados en el período</div><div id="gDia"></div></div>
+      <div class="card"><h3>Cobertura afectada</h3><div class="sub">Tipo de vegetación reportada</div><div class="hb" id="gCob"></div></div>
+    </div>
   </section>
+
   <section id="t-reportes" class="hide"><div class="card">
-    <div class="bar"><select id="rEst"><option value="">Todos los estados</option><option>activo</option><option>controlado</option><option>extinguido</option></select>
-    <select id="rVal"><option value="">Todas las validaciones</option><option value="pendiente">Por validar</option><option value="validado">Validados</option><option value="rechazado">Rechazados</option></select>
-    <input id="rQ" placeholder="Buscar municipio, vereda, reportante"><button class="b" id="csv">Descargar CSV</button><button class="b" onclick="print()">PDF / Imprimir</button></div>
-    <div class="tw"><table><thead><tr><th>Fecha</th><th>Municipio / vereda</th><th>Cobertura</th><th>Área ha</th><th>Estado</th><th>Validación</th><th>Reportante</th><th>Acciones</th></tr></thead><tbody id="rb"></tbody></table></div></div></section>
+    <div class="bar">
+      <select id="rEst"><option value="">Todos los estados</option><option>activo</option><option>controlado</option><option>extinguido</option></select>
+      <select id="rVal"><option value="">Toda validación</option><option value="pendiente">Por validar</option><option value="validado">Validados</option><option value="rechazado">Rechazados</option></select>
+      <input type="search" id="rQ" placeholder="Buscar municipio, vereda, reportante…" style="min-width:240px">
+      <span class="cnt" id="rCnt"></span>
+      <button class="btn" id="csv">Descargar CSV</button><button class="btn p" id="toInf">Generar informe</button>
+    </div>
+    <div class="tw"><table><thead><tr data-sort><th data-k="fecha">Fecha</th><th data-k="municipio">Municipio / vereda</th><th data-k="cobertura">Cobertura</th><th data-k="area">Área (ha)</th><th data-k="estado">Estado</th><th data-k="val">Validación</th><th data-k="por">Reportó</th><th>Fotos</th></tr></thead><tbody id="rb"></tbody></table></div>
+  </div></section>
+
   <section id="t-alertas" class="hide"><div class="card">
-    <div class="bar"><select id="aEst"><option value="abiertas">Abiertas</option><option value="">Todas</option><option>nueva</option><option>asignada</option><option>en_camino</option><option>verificada</option><option>descartada</option></select></div>
-    <div class="tw"><table><thead><tr><th>Fecha</th><th>Fuente</th><th>Alerta</th><th>Municipio</th><th>Prioridad</th><th>Estado</th><th>Asignada a</th><th>Acciones</th></tr></thead><tbody id="ab"></tbody></table></div></div></section>
+    <div class="bar"><select id="aEst"><option value="abiertas">Abiertas</option><option value="">Todas</option><option>nueva</option><option>asignada</option><option>en_camino</option><option>verificada</option><option>descartada</option></select><span class="cnt" id="aCnt"></span></div>
+    <div class="tw"><table><thead><tr><th>Fecha</th><th>Fuente</th><th>Alerta</th><th>Municipio</th><th>Prioridad</th><th>Estado</th><th>Asignada a</th><th></th></tr></thead><tbody id="ab"></tbody></table></div>
+  </div></section>
+
   <section id="t-chat" class="hide"><div class="chat"><div class="chs" id="chs"></div>
-    <div class="cp"><div class="bar" style="padding:10px 12px;margin:0;border-bottom:1px solid var(--line)"><b id="chT">General</b></div><div class="cm" id="cm"></div>
-    <div class="cf"><input id="cin" placeholder="Escribe un mensaje al equipo…"><button class="b p" id="csend">Enviar</button></div></div></div></section>
-  <section id="t-equipo" class="hide"><div class="grid"><div class="card"><h3>Guardabosques en campo (última posición)</h3><div class="tw"><table><thead><tr><th>Nombre</th><th>Última señal</th><th>Ubicación</th></tr></thead><tbody id="pb"></tbody></table></div></div>
-    <div class="card"><h3>Novedades de ronda</h3><div class="tw" id="nv"></div></div></div></section>
+    <div class="cp"><div style="padding:12px 14px;border-bottom:1px solid var(--line)"><b id="chT">General</b><br><small style="color:var(--mut)" id="chS"></small></div><div class="cm" id="cm"></div>
+    <div class="cf"><input id="cin" type="text" placeholder="Escribe un mensaje al equipo…"><button class="btn p" id="csend">Enviar</button></div></div></div></section>
+
+  <section id="t-equipo" class="hide"><div class="g2">
+    <div class="card"><h3>Equipo en campo</h3><div class="sub">Última posición compartida</div><div class="tw"><table><thead><tr><th>Nombre</th><th>Última señal</th><th>Ubicación</th></tr></thead><tbody id="pb"></tbody></table></div></div>
+    <div class="card"><h3>Novedades de ronda</h3><div class="sub">Lo que reporta el equipo durante los recorridos</div><div class="tw" id="nv" style="padding:4px 12px"></div></div>
+  </div></section>
+
+  <section id="t-informe" class="hide">
+    <div class="bar"><button class="btn p" id="prn">Imprimir / guardar PDF</button><button class="btn" id="csv2">Descargar CSV</button><span class="cnt">Usa los filtros de arriba (período, municipio, origen) para armar el informe</span></div>
+    <div class="card rep" id="inf"></div>
+  </section>
 </main>
-<footer>Fuente de datos: reportes de campo (app Incendios Caldas), NASA FIRMS, IDEAM y capas de Corpocaldas · Gobernación de Caldas</footer>
+<footer>Fuente de datos: reportes de campo (app Incendios Caldas), QField, NASA FIRMS, IDEAM y capas de Corpocaldas · Gobernación de Caldas</footer>
 </div>
+<aside class="dr" id="dr"></aside>
 
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -90,13 +177,19 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:16px}
 const C = window.APP_CONFIG, $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fmt = d => d ? new Date(d).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" }) : "—";
+const fday = d => d ? new Date(d).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
+const ago = t => { const m = Math.round((Date.now() - new Date(t)) / 60000); return !isFinite(m) ? "" : m < 1 ? "ahora" : m < 60 ? `hace ${m} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} d`; };
 const uid = () => crypto.randomUUID();
 const sb = window.supabase.createClient(C.SUPABASE_URL, C.SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
-const S = { user: null, rol: "", nombre: "", rep: [], al: [], msg: [], pos: [], nov: [], perf: [], canal: "general", seen: {}, tab: "resumen" };
-const tag = (c, t) => `<span class="tag t-${esc(c)}">${esc(t ?? c)}</span>`;
-const REP = r => ({ id: r.id, fecha: r.fecha_hora, lat: r.lat, lon: r.lon, municipio: r.municipio, vereda: r.vereda, cobertura: r.cobertura, area: r.area_ha, estado: String(r.estado || "").toLowerCase(), val: r.rechazado ? "rechazado" : r.validado ? "validado" : "pendiente", por: r.reportante, causa: r.causa_probable, obs: r.observaciones, origen: r.origen });
+const S = { user: null, rol: "", nombre: "", rep: [], al: [], msg: [], pos: [], nov: [], perf: [], canal: "general", seen: {}, tab: "resumen", sort: { k: "fecha", d: -1 }, t: 0, ok: false };
+const COL = { activo: "#e15759", controlado: "#f28e2b", extinguido: "#59a14f", nueva: "#e15759", asignada: "#f28e2b", en_camino: "#4e79a7", verificada: "#59a14f", descartada: "#9ca3af", validado: "#59a14f", pendiente: "#f28e2b", rechazado: "#9ca3af", alta: "#e15759", media: "#f28e2b", baja: "#59a14f", sos: "#e15759" };
+const tag = (c, t) => `<span class="tag" style="--c:${COL[String(c).toLowerCase()] || "#6b7280"}">${esc(t ?? c ?? "")}</span>`;
+const PAL = ["#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f", "#edc948", "#b07aa1", "#ff9da7", "#9c755f", "#bab0ac"];
+const REP = r => ({ id: r.id, fecha: r.fecha_hora, lat: r.lat, lon: r.lon, municipio: r.municipio, vereda: r.vereda, cobertura: r.cobertura, area: r.area_ha, estado: String(r.estado || "").toLowerCase(), val: r.rechazado ? "rechazado" : r.validado ? "validado" : "pendiente", por: r.reportante, causa: r.causa_probable, obs: r.observaciones, origen: r.origen || "app", fotos: Array.isArray(r.fotos) ? r.fotos : [], nivel: r.nivel });
 const isTec = () => ["tecnico", "coordinador", "planeacion"].includes(S.rol);
+const abiertas = a => ["nueva", "asignada", "en_camino"].includes(a.estado);
+const lugar = r => [r.vereda, r.municipio].filter(Boolean).join(" · ") || "sin ubicación";
 
 /* ---------- acceso ---------- */
 async function boot() {
@@ -107,103 +200,185 @@ async function boot() {
   S.rol = (data && data.rol) || "ciudadano"; S.nombre = (data && data.nombre) || (S.user.email || "").split("@")[0];
   if (!isTec()) { await sb.auth.signOut(); $("#le").textContent = "Este panel es para Planeación, técnicos y coordinación."; $("#login").classList.remove("hide"); $("#app").classList.add("hide"); return; }
   $("#login").classList.add("hide"); $("#app").classList.remove("hide"); $("#who").textContent = `${S.nombre} · ${cap(S.rol)}`;
-  initMap(); await loadAll(); paintAll(); subscribe(); setInterval(loadAll, 60000);
+  initMap(); await loadAll(); subscribe(); setInterval(() => { if (!document.hidden) loadAll(); }, 15000); setInterval(paintLive, 5000);
 }
 $("#go").onclick = async () => { $("#le").textContent = ""; const { error } = await sb.auth.signInWithPassword({ email: $("#em").value.trim(), password: $("#pw").value }); if (error) $("#le").textContent = error.message; else boot(); };
 $("#pw").onkeydown = e => { if (e.key === "Enter") $("#go").click(); };
 $("#out").onclick = async e => { e.preventDefault(); await sb.auth.signOut(); location.reload(); };
+$("#refresh").onclick = () => loadAll();
 
 /* ---------- datos ---------- */
-async function q(t, order, lim = 1000) { let r = sb.from(t).select("*").limit(lim); if (order) r = r.order(order, { ascending: false }); const { data, error } = await r; if (error) { console.warn(t, error.message); return []; } return data; }
+async function q(t, order, lim = 1000) { let r = sb.from(t).select("*").limit(lim); if (order) r = r.order(order, { ascending: false }); const { data, error } = await r; if (error) { console.warn(t, error.message); S.err = error.message; return null; } return data; }
+let loading = false;
 async function loadAll() {
-  const [r, a, m, p, n, pf] = await Promise.all([q(C.TABLA_REPORTES, "fecha_hora"), q(C.TABLA_ALERTAS, "created_at"), q(C.TABLA_MENSAJES, "created_at", 1500), q(C.TABLA_POSICIONES, "updated_at"), q(C.TABLA_NOVEDADES, "created_at", 200), q(C.TABLA_PERFILES, null, 300)]);
-  S.rep = r.map(REP); S.al = a; S.msg = m.reverse(); S.pos = p; S.nov = n; S.perf = pf; paintAll();
+  if (loading) return; loading = true; S.err = "";
+  try {
+    const [r, a, m, p, n, pf] = await Promise.all([q(C.TABLA_REPORTES, "fecha_hora"), q(C.TABLA_ALERTAS, "created_at"), q(C.TABLA_MENSAJES, "created_at", 1500), q(C.TABLA_POSICIONES, "updated_at"), q(C.TABLA_NOVEDADES, "created_at", 300), q(C.TABLA_PERFILES, null, 300)]);
+    if (r) S.rep = r.map(REP); if (a) S.al = a; if (m) S.msg = m.reverse(); if (p) S.pos = p; if (n) S.nov = n; if (pf) S.perf = pf;
+    S.ok = !S.err; S.t = Date.now();
+  } catch (e) { S.err = e.message; S.ok = false; }
+  loading = false; fillMun(); paintAll(); paintLive();
 }
-function subscribe() { let t; sb.channel("dash").on("postgres_changes", { event: "*", schema: "public" }, () => { clearTimeout(t); t = setTimeout(loadAll, 700); }).subscribe(); }
+function paintLive() { const l = $("#live"); l.classList.toggle("off", !S.ok); $("#liveT").textContent = S.ok ? `En vivo · actualizado ${ago(S.t)}` : "Sin conexión con la base de datos" + (S.err ? ": " + S.err : ""); }
+function subscribe() { let t; sb.channel("dash").on("postgres_changes", { event: "*", schema: "public" }, () => { clearTimeout(t); t = setTimeout(loadAll, 600); }).subscribe(); }
+
+/* ---------- filtros ---------- */
+function fillMun() { const s = $("#fMun"), cur = s.value, set = new Set(S.rep.map(r => r.municipio).filter(Boolean).concat(S.al.map(a => a.municipio).filter(Boolean))); s.innerHTML = '<option value="">Todos</option>' + [...set].sort().map(m => `<option ${m === cur ? "selected" : ""}>${esc(m)}</option>`).join(""); s.value = cur; }
+const dias = () => +$("#fPer").value;
+const desde = (k = 0) => dias() ? Date.now() - (k + 1) * dias() * 864e5 : 0;
+const hasta = (k = 0) => k ? Date.now() - k * dias() * 864e5 : Infinity;
+function inPer(d, k = 0) { const t = new Date(d).getTime(); return !dias() ? k === 0 : t >= desde(k) && t < hasta(k); }
+function fRep(k = 0) { const m = $("#fMun").value, o = $("#fOri").value; return S.rep.filter(r => r.val !== "rechazado" && (!m || r.municipio === m) && (!o || r.origen === o) && inPer(r.fecha, k)); }
+function fRepAll() { const m = $("#fMun").value, o = $("#fOri").value; return S.rep.filter(r => (!m || r.municipio === m) && (!o || r.origen === o) && inPer(r.fecha)); }
+function fAl() { const m = $("#fMun").value; return S.al.filter(a => (!m || a.municipio === m) && inPer(a.created_at)); }
+["fPer", "fMun", "fOri"].forEach(i => $("#" + i).onchange = paintAll);
 
 /* ---------- navegación ---------- */
-$("#nav").onclick = e => { const b = e.target.closest("[data-t]"); if (!b) return; S.tab = b.dataset.t; $$("#nav button").forEach(x => x.classList.toggle("on", x === b)); $$("main section").forEach(s => s.classList.toggle("hide", s.id !== "t-" + S.tab)); if (S.tab === "resumen") setTimeout(() => map.invalidateSize(), 50); if (S.tab === "chat") { markSeen(); paintChat(); } };
-const abiertas = a => ["nueva", "asignada", "en_camino"].includes(a.estado);
-function paintAll() { paintKpis(); paintMap(); paintGraf(); paintRep(); paintAl(); paintChs(); paintChat(); paintEq(); }
+function go(t) { S.tab = t; $$("#nav button").forEach(x => x.classList.toggle("on", x.dataset.t === t)); $$("main section").forEach(s => s.classList.toggle("hide", s.id !== "t-" + t)); $("#filt").classList.toggle("hide", t === "chat"); if (t === "resumen") setTimeout(() => map.invalidateSize(), 60); if (t === "chat") { markSeen(); paintChs(); paintChat(); } paintAll(); }
+$("#nav").onclick = e => { const b = e.target.closest("[data-t]"); if (b) go(b.dataset.t); };
+$("#toInf").onclick = () => go("informe");
+function paintAll() { paintKpis(); paintMap(); paintGraf(); paintRep(); paintAl(); paintChs(); paintChat(); paintEq(); if (S.tab === "informe") paintInf(); }
+
+/* ---------- gráficas (SVG / CSS, sin librerías) ---------- */
+function hbars(rows, col) { const mx = Math.max(1, ...rows.map(x => x[1])); return rows.length ? rows.map(([k, v], i) => `<div><span title="${esc(k)}">${esc(k)}</span><i style="width:${Math.max(3, v / mx * 100)}%;background:${col || PAL[i % PAL.length]}"></i><b>${v}</b></div>`).join("") : '<small style="color:var(--mut)">Sin datos en el período</small>'; }
+function donut(rows) { const tot = rows.reduce((s, x) => s + x[1], 0); if (!tot) return '<small style="color:var(--mut)">Sin datos en el período</small>'; let a = 0; const seg = rows.map(x => { const p = x[1] / tot * 100, s = `${x[2]} ${a}% ${a + p}%`; a += p; return s; }).join(","); return `<div class="donut"><div class="ring" style="background:conic-gradient(${seg})" data-t="${tot}"></div><div class="lg">${rows.map(x => `<div><i style="background:${x[2]}"></i>${esc(cap(x[0]))} <b>${x[1]}</b> <span style="color:var(--mut)">(${Math.round(x[1] / tot * 100)}%)</span></div>`).join("")}</div></div>`; }
+function linea(rep) {
+  const n = dias() || 90, days = []; for (let i = n - 1; i >= 0; i--) { const d = new Date(Date.now() - i * 864e5); days.push({ k: d.toISOString().slice(0, 10), v: 0, ha: 0 }); }
+  const ix = Object.fromEntries(days.map((d, i) => [d.k, i])); rep.forEach(r => { const k = (r.fecha || "").slice(0, 10); if (k in ix) { days[ix[k]].v++; days[ix[k]].ha += +r.area || 0; } });
+  const W = 760, H = 220, pl = 34, pb = 24, pt = 10, mx = Math.max(2, ...days.map(d => d.v)), bw = (W - pl - 8) / days.length;
+  const ys = v => H - pb - v / mx * (H - pb - pt);
+  let g = ""; for (let i = 0; i <= 4; i++) { const v = Math.round(mx * i / 4), y = ys(v); g += `<line x1="${pl}" x2="${W}" y1="${y}" y2="${y}" stroke="#e5e7eb"/><text x="${pl - 6}" y="${y + 4}" text-anchor="end">${v}</text>`; }
+  const step = Math.ceil(days.length / 8); days.forEach((d, i) => { if (i % step === 0) g += `<text x="${pl + i * bw + bw / 2}" y="${H - 6}" text-anchor="middle">${d.k.slice(8)}/${d.k.slice(5, 7)}</text>`; });
+  const bars = days.map((d, i) => `<rect x="${pl + i * bw + 1}" y="${ys(d.v)}" width="${Math.max(2, bw - 2)}" height="${H - pb - ys(d.v)}" fill="#4e79a7" rx="2"><title>${d.k}: ${d.v} reporte(s)${d.ha ? ", " + d.ha.toFixed(1) + " ha" : ""}</title></rect>`).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Reportes por día">${g}${bars}</svg>`;
+}
+const cntBy = (arr, f) => { const c = {}; arr.forEach(x => { const k = f(x) || "Sin dato"; c[k] = (c[k] || 0) + 1; }); return Object.entries(c).sort((a, b) => b[1] - a[1]); };
+function charts(rep) {
+  return {
+    est: donut(["activo", "controlado", "extinguido"].map(k => [k, rep.filter(r => r.estado === k).length, COL[k]]).filter(x => x[1])),
+    mun: hbars(cntBy(rep, r => r.municipio).slice(0, 8), "#4e79a7"),
+    cob: hbars(cntBy(rep, r => r.cobertura).slice(0, 8)),
+    dia: linea(rep)
+  };
+}
 
 /* ---------- resumen ---------- */
-function paintKpis() {
-  const act = S.rep.filter(r => r.estado === "activo" && r.val !== "rechazado").length, pen = S.rep.filter(r => r.val === "pendiente").length;
+function delta(a, b, inv) { if (!dias()) return ""; if (!b) return a ? `<em class="${inv ? "dn" : "up"}">nuevo</em>` : ""; const p = Math.round((a - b) / b * 100); if (!p) return `<em style="color:var(--mut)">= que el período anterior</em>`; return `<em class="${(p > 0) !== !!inv ? "up" : "dn"}">${p > 0 ? "▲" : "▼"} ${Math.abs(p)}% vs período anterior</em>`; }
+function kpis() {
+  const m = $("#fMun").value, rep = fRep(), prev = fRep(1);
+  const act = S.rep.filter(r => r.estado === "activo" && r.val !== "rechazado" && (!m || r.municipio === m)).length;
+  const pen = S.rep.filter(r => r.val === "pendiente" && (!m || r.municipio === m)).length;
+  const ha = rep.reduce((s, r) => s + (+r.area || 0), 0), haP = prev.reduce((s, r) => s + (+r.area || 0), 0);
   const al = S.al.filter(abiertas).length, enc = S.pos.filter(p => Date.now() - new Date(p.updated_at) < 3600e3).length;
-  const sos = S.msg.filter(m => m.tipo === "sos" && Date.now() - new Date(m.created_at) < 24 * 3600e3).length;
-  const ha = S.rep.filter(r => r.val === "validado").reduce((s, r) => s + (+r.area || 0), 0);
-  $("#kpis").innerHTML = [["Incendios activos", act, act ? "al" : ""], ["Por validar", pen, pen ? "al" : ""], ["Alertas abiertas", al, al ? "al" : ""], ["Guardabosques en campo (1 h)", enc, ""], ["SOS (24 h)", sos, sos ? "al" : ""], ["Área validada (ha)", ha.toFixed(1), ""]].map(k => `<div class="kpi ${k[2]}"><b>${k[1]}</b><span>${k[0]}</span></div>`).join("");
-  $("#bAl").textContent = al; $("#bAl").classList.toggle("hide", !al);
+  const sos = S.msg.filter(x => x.tipo === "sos" && Date.now() - new Date(x.created_at) < 864e5).length;
+  return [
+    ["Incendios activos", act, act ? "#e15759" : "#59a14f", "Ahora mismo"], ["Reportes en el período", rep.length, "#4e79a7", delta(rep.length, prev.length)],
+    ["Por validar", pen, pen ? "#f28e2b" : "#59a14f", "Esperan revisión técnica"], ["Área afectada (ha)", ha.toFixed(1), "#b07aa1", delta(ha, haP)],
+    ["Alertas abiertas", al, al ? "#f28e2b" : "#59a14f", "Por verificar o atender"], ["Equipo en línea (1 h)", enc, "#76b7b2", `${S.pos.length} con ubicación`], ["SOS (24 h)", sos, sos ? "#e15759" : "#59a14f", sos ? "Revisar el chat" : "Sin emergencias"]
+  ];
 }
-function paintGraf() {
-  const c = {}; S.rep.filter(r => r.val !== "rechazado").forEach(r => c[r.municipio || "Sin dato"] = (c[r.municipio || "Sin dato"] || 0) + 1);
-  const top = Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 8), mx = Math.max(1, ...top.map(x => x[1]));
-  $("#gMun").innerHTML = top.length ? top.map(([k, v]) => `<div><span>${esc(k)}</span><i style="width:${v / mx * 70}%"></i><b>${v}</b></div>`).join("") : "<small>Sin datos</small>";
-  const dias = []; for (let i = 13; i >= 0; i--) { const d = new Date(Date.now() - i * 864e5); dias.push([d.toISOString().slice(0, 10), d.toLocaleDateString("es-CO", { day: "2-digit", month: "short" }), 0]); }
-  S.rep.forEach(r => { const k = (r.fecha || "").slice(0, 10), x = dias.find(d => d[0] === k); if (x) x[2]++; });
-  const m2 = Math.max(1, ...dias.map(d => d[2])); $("#gDia").innerHTML = dias.map(d => `<div><span>${d[1]}</span><i style="width:${d[2] / m2 * 70}%"></i><b>${d[2]}</b></div>`).join("");
-}
-let map, lyr = {};
+function paintKpis() { const k = kpis(); $("#kpis").innerHTML = k.map(x => `<div class="kpi" style="--c:${x[2]}"><span>${x[0]}</span><b>${x[1]}</b>${x[3] && x[3].startsWith("<") ? x[3] : `<span>${x[3] || ""}</span>`}</div>`).join(""); const pen = S.rep.filter(r => r.val === "pendiente").length, al = S.al.filter(abiertas).length; $("#bAl").textContent = al; $("#bAl").classList.toggle("hide", !al); $("#bRe").textContent = pen; $("#bRe").classList.toggle("hide", !pen); $("#fCnt").textContent = `${fRep().length} reportes en el período`; }
+function paintGraf() { const c = charts(fRep()); $("#gEst").innerHTML = c.est; $("#gMun").innerHTML = c.mun; $("#gCob").innerHTML = c.cob; $("#gDia").innerHTML = c.dia; }
+
+let map, lyr = {}, base;
+const BASES = { claro: ["https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", "Esri"], calles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", "Esri"], sat: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", "Esri, Maxar"] };
+function setBase(k) { if (base) map.removeLayer(base); base = L.tileLayer(BASES[k][0], { maxZoom: 18, attribution: BASES[k][1] }).addTo(map); base.bringToBack(); }
 function initMap() {
-  map = L.map("map", { center: C.MAPA_CENTRO, zoom: C.MAPA_ZOOM });
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Esri, Maxar" }).addTo(map);
+  map = L.map("map", { center: C.MAPA_CENTRO, zoom: C.MAPA_ZOOM }); setBase("calles");
   ["rep", "al", "eq"].forEach(k => lyr[k] = L.layerGroup().addTo(map));
-  $("#mapf").innerHTML = [["rep", "Incendios"], ["al", "Alertas"], ["eq", "Equipo"]].map(([k, n]) => `<label><input type="checkbox" checked data-l="${k}"> ${n}</label>`).join(" ");
-  $("#mapf").onchange = e => { const k = e.target.dataset.l; e.target.checked ? lyr[k].addTo(map) : map.removeLayer(lyr[k]); };
+  $("#mapf").innerHTML = [["rep", "Incendios"], ["al", "Alertas"], ["eq", "Equipo"]].map(([k, n]) => `<label><input type="checkbox" checked data-l="${k}"> ${n}</label>`).join("") + `<span class="sp"></span><label>Fondo <select id="mb"><option value="calles">Calles</option><option value="claro">Gris claro</option><option value="sat">Satélite</option></select></label>`;
+  $("#mapf").onchange = e => { if (e.target.id === "mb") return setBase(e.target.value); const k = e.target.dataset.l; if (k) e.target.checked ? lyr[k].addTo(map) : map.removeLayer(lyr[k]); };
 }
-const dot = (c, t) => L.divIcon({ className: "", html: `<div style="background:${c};color:#fff;border:2px solid #fff;border-radius:50%;width:22px;height:22px;text-align:center;font-size:12px;line-height:18px;box-shadow:0 1px 4px #0006">${t}</div>`, iconSize: [22, 22] });
+const dot = (c, t) => L.divIcon({ className: "", html: `<div style="background:${c};color:#fff;border:2px solid #fff;border-radius:50%;width:24px;height:24px;text-align:center;font-size:12px;line-height:20px;box-shadow:0 1px 4px #0006">${t}</div>`, iconSize: [24, 24] });
+let fitted = false;
 function paintMap() {
-  if (!map) return; Object.values(lyr).forEach(l => l.clearLayers());
-  S.rep.filter(r => r.lat != null && r.val !== "rechazado").forEach(r => L.marker([r.lat, r.lon], { icon: dot(r.estado === "activo" ? "#c62828" : r.estado === "controlado" ? "#d97706" : "#2e7d32", "🔥") }).bindPopup(`<b>${esc(r.municipio || "")}</b> ${esc(r.vereda || "")}<br>${tag(r.estado)} ${tag(r.val)}<br>${fmt(r.fecha)}`).addTo(lyr.rep));
-  S.al.filter(a => abiertas(a) && a.lat != null).forEach(a => L.marker([a.lat, a.lon], { icon: dot("#d97706", "!") }).bindPopup(`<b>${esc(a.titulo)}</b><br>${tag(a.estado)} ${fmt(a.created_at)}`).addTo(lyr.al));
-  S.pos.forEach(p => L.marker([p.lat, p.lon], { icon: dot("#0b5cab", "●") }).bindTooltip(`${esc(p.nombre || "Guardabosque")} · ${fmt(p.updated_at)}`).addTo(lyr.eq));
+  if (!map) return; Object.values(lyr).forEach(l => l.clearLayers()); const pts = [];
+  fRep().filter(r => r.lat != null).forEach(r => { pts.push([r.lat, r.lon]); L.marker([r.lat, r.lon], { icon: dot(COL[r.estado] || "#e15759", "🔥") }).bindPopup(`<b>${esc(lugar(r))}</b><br>${tag(r.estado)} ${tag(r.val, r.val === "pendiente" ? "por validar" : r.val)}<br>${fmt(r.fecha)}${r.area ? " · " + r.area + " ha" : ""}<br><a href="#" onclick="openRep('${r.id}');return false">Ver detalle</a>`).addTo(lyr.rep); });
+  S.al.filter(a => abiertas(a) && a.lat != null).forEach(a => L.marker([a.lat, a.lon], { icon: dot("#f28e2b", "!") }).bindPopup(`<b>${esc(a.titulo)}</b><br>${tag(a.estado)} ${fmt(a.created_at)}`).addTo(lyr.al));
+  S.pos.filter(p => p.lat != null).forEach(p => L.marker([p.lat, p.lon], { icon: dot("#4e79a7", "●") }).bindTooltip(`${esc(p.nombre || "Guardabosque")} · ${ago(p.updated_at)}`).addTo(lyr.eq));
+  if (pts.length && !fitted) { map.fitBounds(pts, { padding: [30, 30], maxZoom: 12 }); fitted = true; }
 }
 
 /* ---------- reportes ---------- */
 ["rEst", "rVal", "rQ"].forEach(i => $("#" + i).oninput = paintRep);
-function repFilt() { const e = $("#rEst").value, v = $("#rVal").value, t = $("#rQ").value.toLowerCase(); return S.rep.filter(r => (!e || r.estado === e) && (!v || r.val === v) && (!t || [r.municipio, r.vereda, r.por, r.cobertura].join(" ").toLowerCase().includes(t))); }
+function repFilt() { const e = $("#rEst").value, v = $("#rVal").value, t = $("#rQ").value.toLowerCase(), { k, d } = S.sort; return fRepAll().filter(r => (!e || r.estado === e) && (!v || r.val === v) && (!t || [r.municipio, r.vereda, r.por, r.cobertura, r.causa].join(" ").toLowerCase().includes(t))).sort((a, b) => { const x = a[k] ?? "", y = b[k] ?? ""; return (x > y ? 1 : x < y ? -1 : 0) * d; }); }
+$("#t-reportes thead").onclick = e => { const k = e.target.dataset.k; if (!k) return; S.sort = { k, d: S.sort.k === k ? -S.sort.d : -1 }; paintRep(); };
 function paintRep() {
-  $("#rb").innerHTML = repFilt().map(r => `<tr><td>${fmt(r.fecha)}</td><td><b>${esc(r.municipio || "")}</b><br><small>${esc(r.vereda || "")}</small></td><td>${esc(r.cobertura || "")}</td><td>${r.area ?? ""}</td><td>${isTec() ? `<select data-e="${r.id}">${["activo", "controlado", "extinguido"].map(x => `<option ${x === r.estado ? "selected" : ""}>${x}</option>`).join("")}</select>` : tag(r.estado)}</td><td>${tag(r.val, { pendiente: "por validar" }[r.val] || r.val)}</td><td>${esc(r.por || "")}</td><td>${r.val !== "validado" ? `<button class="b p" data-v="${r.id}:validado">Validar</button>` : ""}${r.val !== "rechazado" ? `<button class="b r" data-v="${r.id}:rechazado">Rechazar</button>` : ""}</td></tr>`).join("") || '<tr><td colspan="8">Sin reportes</td></tr>';
+  const rows = repFilt(); $("#rCnt").textContent = `${rows.length} reportes`;
+  $("#rb").innerHTML = rows.map(r => `<tr class="clk" data-r="${r.id}"><td>${fmt(r.fecha)}</td><td><b>${esc(r.municipio || "—")}</b><br><small style="color:var(--mut)">${esc(r.vereda || "")}</small></td><td>${esc(r.cobertura || "")}</td><td>${r.area ?? ""}</td><td>${tag(r.estado)}</td><td>${tag(r.val, r.val === "pendiente" ? "por validar" : r.val)}</td><td>${esc(r.por || "—")}<br><small style="color:var(--mut)">${r.origen === "qfield" ? "QField" : "App"}</small></td><td>${r.fotos.length ? "📷 " + r.fotos.length : ""}</td></tr>`).join("") || '<tr><td colspan="8" style="color:var(--mut);padding:20px">Sin reportes con estos filtros</td></tr>';
 }
-$("#rb").onclick = async e => { const b = e.target.closest("[data-v]"); if (!b) return; const [id, v] = b.dataset.v.split(":"); const { error } = await sb.from(C.TABLA_REPORTES).update({ validado: v === "validado", rechazado: v === "rechazado" }).eq("id", id); if (error) alert(error.message); else loadAll(); };
-$("#rb").onchange = async e => { const id = e.target.dataset.e; if (!id) return; const { error } = await sb.from(C.TABLA_REPORTES).update({ estado: cap(e.target.value) }).eq("id", id); if (error) alert(error.message); else loadAll(); };
-$("#csv").onclick = () => { const rows = [["fecha", "municipio", "vereda", "cobertura", "area_ha", "estado", "validacion", "reportante", "lat", "lon"], ...repFilt().map(r => [r.fecha, r.municipio, r.vereda, r.cobertura, r.area, r.estado, r.val, r.por, r.lat, r.lon])]; const t = rows.map(r => r.map(x => `"${String(x ?? "").replace(/"/g, '""')}"`).join(",")).join("\n"); const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + t], { type: "text/csv" })); a.download = "reportes_incendios.csv"; a.click(); };
+$("#rb").onclick = e => { const tr = e.target.closest("[data-r]"); if (tr) openRep(tr.dataset.r); };
+function openRep(id) {
+  const r = S.rep.find(x => x.id === id); if (!r) return; const d = $("#dr"), ch = "inc:" + r.id, nmsg = S.msg.filter(m => m.canal === ch).length;
+  d.innerHTML = `<button class="x" id="dx">×</button><h2>${esc(lugar(r))}</h2><div>${tag(r.estado)} ${tag(r.val, r.val === "pendiente" ? "por validar" : r.val)}</div>
+  <dl><dt>Fecha</dt><dd>${fmt(r.fecha)} <small style="color:var(--mut)">(${ago(r.fecha)})</small></dd><dt>Cobertura</dt><dd>${esc(r.cobertura || "—")}</dd><dt>Área estimada</dt><dd>${r.area != null ? r.area + " ha" : "—"}</dd><dt>Causa probable</dt><dd>${esc(r.causa || "—")}</dd><dt>Reportó</dt><dd>${esc(r.por || "—")} · ${r.origen === "qfield" ? "QField" : "App"}</dd><dt>Observaciones</dt><dd>${esc(r.obs || "—")}</dd><dt>Coordenadas</dt><dd>${r.lat != null ? `<a target="_blank" href="https://www.google.com/maps?q=${r.lat},${r.lon}">${(+r.lat).toFixed(5)}, ${(+r.lon).toFixed(5)}</a>` : "—"}</dd></dl>
+  ${r.fotos.length ? `<div class="ph">${r.fotos.map(u => `<a href="${esc(u)}" target="_blank"><img src="${esc(u)}" alt="foto"></a>`).join("")}</div>` : ""}
+  <div class="bar" style="margin-top:14px">${isTec() ? `<label>Estado <select id="dEst">${["activo", "controlado", "extinguido"].map(x => `<option ${x === r.estado ? "selected" : ""}>${x}</option>`).join("")}</select></label>` : ""}</div>
+  <div class="bar">${isTec() && r.val !== "validado" ? `<button class="btn p" data-v="validado">Validar</button>` : ""}${isTec() && r.val !== "rechazado" ? `<button class="btn r" data-v="rechazado">Rechazar</button>` : ""}<button class="btn" id="dCh">Chat del incendio (${nmsg})</button></div>`;
+  d.classList.add("on"); $("#dx").onclick = () => d.classList.remove("on");
+  $("#dCh").onclick = () => { d.classList.remove("on"); S.canal = ch; go("chat"); };
+  const de = $("#dEst"); if (de) de.onchange = async () => { const { error } = await sb.from(C.TABLA_REPORTES).update({ estado: cap(de.value) }).eq("id", r.id); if (error) alert(error.message); else loadAll(); };
+  $$("[data-v]", d).forEach(b => b.onclick = async () => { const v = b.dataset.v, { error } = await sb.from(C.TABLA_REPORTES).update({ validado: v === "validado", rechazado: v === "rechazado" }).eq("id", r.id); if (error) alert(error.message); else { d.classList.remove("on"); loadAll(); } });
+}
+window.openRep = openRep;
+const csvDown = (rows, name) => { const t = rows.map(r => r.map(x => `"${String(x ?? "").replace(/"/g, '""')}"`).join(",")).join("\n"); const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + t], { type: "text/csv" })); a.download = name; a.click(); };
+const csvRows = rows => [["fecha", "municipio", "vereda", "cobertura", "area_ha", "estado", "validacion", "causa_probable", "reportante", "origen", "lat", "lon"], ...rows.map(r => [r.fecha, r.municipio, r.vereda, r.cobertura, r.area, r.estado, r.val, r.causa, r.por, r.origen, r.lat, r.lon])];
+$("#csv").onclick = () => csvDown(csvRows(repFilt()), "reportes_incendios.csv");
+$("#csv2").onclick = () => csvDown(csvRows(fRep()), "informe_incendios.csv");
 
 /* ---------- alertas ---------- */
 $("#aEst").oninput = paintAl;
 function paintAl() {
-  const f = $("#aEst").value, rows = S.al.filter(a => !f || (f === "abiertas" ? abiertas(a) : a.estado === f));
+  const f = $("#aEst").value, rows = fAl().concat(S.al.filter(a => abiertas(a) && !fAl().includes(a))).filter(a => !f || (f === "abiertas" ? abiertas(a) : a.estado === f)).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  $("#aCnt").textContent = `${rows.length} alertas`;
   const staff = S.perf.filter(p => ["guardabosque", "tecnico", "coordinador", "planeacion"].includes(p.rol));
-  $("#ab").innerHTML = rows.map(a => `<tr><td>${fmt(a.created_at)}</td><td>${esc(a.fuente)}</td><td><b>${esc(a.titulo)}</b><br><small>${esc(a.descripcion || "")}</small></td><td>${esc(a.municipio || "")}</td><td>${tag(a.prioridad)}</td><td>${tag(a.estado)}</td>
-  <td>${abiertas(a) ? `<select data-as="${a.id}"><option value="">Asignar a…</option>${staff.map(p => `<option value="${p.user_id}|${esc(p.nombre || p.rol)}" ${p.user_id === a.asignado_a ? "selected" : ""}>${esc(p.nombre || p.rol)} (${esc(p.rol)})</option>`).join("")}</select>` : esc(a.asignado_nombre || "")}</td>
-  <td>${abiertas(a) ? `<button class="b r" data-d="${a.id}">Descartar</button>` : ""}</td></tr>`).join("") || '<tr><td colspan="8">Sin alertas</td></tr>';
+  $("#ab").innerHTML = rows.map(a => `<tr><td>${fmt(a.created_at)}</td><td>${esc(a.fuente || "")}</td><td><b>${esc(a.titulo)}</b><br><small style="color:var(--mut)">${esc(a.descripcion || "")}</small></td><td>${esc(a.municipio || "")}</td><td>${tag(a.prioridad || "media")}</td><td>${tag(a.estado)}</td>
+  <td>${abiertas(a) ? `<select data-as="${a.id}"><option value="">Asignar a…</option>${staff.map(p => `<option value="${p.user_id}|${esc(p.nombre || p.rol)}" ${p.user_id === a.asignado_a ? "selected" : ""}>${esc(p.nombre || p.rol)} (${esc(p.rol)})</option>`).join("")}</select>` : esc(a.asignado_nombre || "—")}</td>
+  <td>${abiertas(a) ? `<button class="btn r s" data-d="${a.id}">Descartar</button>` : ""}</td></tr>`).join("") || '<tr><td colspan="8" style="color:var(--mut);padding:20px">Sin alertas</td></tr>';
 }
-$("#ab").onchange = async e => { const id = e.target.dataset.as; if (!id || !e.target.value) return; const [uid2, nom] = e.target.value.split("|"); const { error } = await sb.from(C.TABLA_ALERTAS).update({ asignado_a: uid2, asignado_nombre: nom, estado: "asignada" }).eq("id", id); if (error) alert(error.message); else loadAll(); };
+$("#ab").onchange = async e => { const id = e.target.dataset.as; if (!id || !e.target.value) return; const [u2, nom] = e.target.value.split("|"); const { error } = await sb.from(C.TABLA_ALERTAS).update({ asignado_a: u2, asignado_nombre: nom, estado: "asignada" }).eq("id", id); if (error) alert(error.message); else loadAll(); };
 $("#ab").onclick = async e => { const id = e.target.dataset.d; if (!id || !confirm("¿Descartar esta alerta?")) return; const { error } = await sb.from(C.TABLA_ALERTAS).update({ estado: "descartada" }).eq("id", id); if (error) alert(error.message); else loadAll(); };
 
 /* ---------- chat ---------- */
+function nombreCanal(c) { if (c === "general") return "General del equipo"; if (c.startsWith("inc:")) { const r = S.rep.find(y => y.id === c.slice(4)); return r ? `Incendio · ${lugar(r)}` : "Incendio (reporte no disponible)"; } return c; }
 function canales() {
-  const m = new Map([["general", { n: "General del equipo", last: null, u: 0 }]]);
-  S.msg.forEach(x => { const c = x.canal || "general"; if (!m.has(c)) { const r = c.startsWith("inc:") ? S.rep.find(y => y.id === c.slice(4)) : null; m.set(c, { n: r ? `Incendio · ${r.municipio || ""} ${r.vereda || ""}` : c, last: null, u: 0 }); } const o = m.get(c); o.last = x; if (new Date(x.created_at) > new Date(S.seen[c] || 0) && x.autor_id !== S.user.id) o.u++; });
+  const m = new Map([["general", { n: nombreCanal("general"), last: null, u: 0, sos: 0 }]]);
+  S.msg.forEach(x => { const c = x.canal || "general"; if (!m.has(c)) m.set(c, { n: nombreCanal(c), last: null, u: 0, sos: 0 }); const o = m.get(c); o.last = x; if (x.tipo === "sos" && Date.now() - new Date(x.created_at) < 864e5) o.sos++; if (new Date(x.created_at) > new Date(S.seen[c] || 0) && x.autor_id !== S.user.id) o.u++; });
   return m;
 }
-function paintChs() { const cs = canales(); let tot = 0; $("#chs").innerHTML = [...cs].map(([k, v]) => { tot += v.u; return `<div class="ch ${k === S.canal ? "on" : ""}" data-c="${esc(k)}"><b>${esc(v.n)}</b>${v.u ? ` <span class="bd" style="background:var(--red);color:#fff;border-radius:9px;padding:0 6px">${v.u}</span>` : ""}<small>${v.last ? esc((v.last.autor_nombre || "") + ": " + (v.last.texto || "")).slice(0, 60) : "Sin mensajes"}</small></div>`; }).join(""); $("#bCh").textContent = tot; $("#bCh").classList.toggle("hide", !tot); }
+function paintChs() { const cs = canales(); let tot = 0; $("#chs").innerHTML = [...cs].map(([k, v]) => { if (k !== S.canal || S.tab !== "chat") tot += v.u; return `<div class="ch ${k === S.canal ? "on" : ""}" data-c="${esc(k)}"><b>${esc(v.n)}</b>${v.sos ? ` ${tag("sos", "SOS")}` : ""}${v.u && !(k === S.canal && S.tab === "chat") ? ` <span class="bd">${v.u}</span>` : ""}<small>${v.last ? esc((v.last.autor_nombre || "") + ": " + (v.last.texto || (v.last.tipo === "ubicacion" ? "Ubicación compartida" : ""))) : "Sin mensajes"}</small></div>`; }).join(""); $("#bCh").textContent = tot; $("#bCh").classList.toggle("hide", !tot); }
 $("#chs").onclick = e => { const c = e.target.closest("[data-c]"); if (!c) return; S.canal = c.dataset.c; markSeen(); paintChs(); paintChat(); };
 function markSeen() { S.seen[S.canal] = new Date().toISOString(); }
 function paintChat() {
-  const cs = canales(); $("#chT").textContent = (cs.get(S.canal) || { n: S.canal }).n;
-  const ms = S.msg.filter(m => (m.canal || "general") === S.canal), box = $("#cm"), bottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
-  box.innerHTML = ms.map(m => `<div class="m ${m.autor_id === S.user.id ? "me" : ""} ${m.tipo === "sos" ? "sos" : ""}"><b>${esc(m.autor_nombre || "—")}</b>${m.tipo === "sos" ? " " + tag("sos", "SOS") : ""}<div>${esc(m.texto || "")}</div>${m.lat != null ? `<a target="_blank" href="https://www.google.com/maps?q=${m.lat},${m.lon}">Ver ubicación</a>` : ""}<small>${fmt(m.created_at)}</small></div>`).join("") || "<small>Aún no hay mensajes en este canal</small>";
-  if (bottom) box.scrollTop = box.scrollHeight; if (S.tab === "chat") markSeen();
+  const cs = canales(); $("#chT").textContent = (cs.get(S.canal) || { n: nombreCanal(S.canal) }).n;
+  const ms = S.msg.filter(m => (m.canal || "general") === S.canal); $("#chS").textContent = `${ms.length} mensajes`;
+  const box = $("#cm"), bottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80, sig = ms.map(m => m.id).join();
+  if (box.dataset.sig === sig + S.canal) return; box.dataset.sig = sig + S.canal;
+  box.innerHTML = ms.map(m => `<div class="m ${m.autor_id === S.user.id ? "me" : ""} ${m.tipo === "sos" ? "sos" : ""}"><small><b>${esc(m.autor_nombre || "—")}</b> · ${fmt(m.created_at)}</small>${m.tipo === "sos" ? tag("sos", "SOS") + " " : ""}${esc(m.texto || "")}${m.lat != null ? ` <a target="_blank" href="https://www.google.com/maps?q=${m.lat},${m.lon}">📍 ver ubicación</a>` : ""}</div>`).join("") || '<small style="color:var(--mut)">Aún no hay mensajes en este canal</small>';
+  if (bottom || box.dataset.first !== S.canal) { box.scrollTop = box.scrollHeight; box.dataset.first = S.canal; }
+  if (S.tab === "chat") markSeen();
 }
-async function send() { const t = $("#cin").value.trim(); if (!t) return; $("#cin").value = ""; const m = { id: uid(), canal: S.canal, autor_id: S.user.id, autor_nombre: S.nombre + " (coordinación)", tipo: "texto", texto: t, created_at: new Date().toISOString() }; S.msg.push(m); paintChs(); paintChat(); const { error } = await sb.from(C.TABLA_MENSAJES).insert(m); if (error) { alert(error.message); loadAll(); } }
+async function send() { const t = $("#cin").value.trim(); if (!t) return; $("#cin").value = ""; const m = { id: uid(), canal: S.canal, autor_id: S.user.id, autor_nombre: S.nombre + " (coordinación)", tipo: "texto", texto: t, created_at: new Date().toISOString() }; S.msg.push(m); paintChs(); paintChat(); const { error } = await sb.from(C.TABLA_MENSAJES).insert(m); if (error) { alert("No se pudo enviar: " + error.message); loadAll(); } }
 $("#csend").onclick = send; $("#cin").onkeydown = e => { if (e.key === "Enter") send(); };
 
 /* ---------- equipo ---------- */
 function paintEq() {
-  $("#pb").innerHTML = S.pos.map(p => `<tr><td><b>${esc(p.nombre || "—")}</b></td><td>${fmt(p.updated_at)}${Date.now() - new Date(p.updated_at) < 3600e3 ? " " + tag("verificada", "en línea") : ""}</td><td><a target="_blank" href="https://www.google.com/maps?q=${p.lat},${p.lon}">${(+p.lat).toFixed(4)}, ${(+p.lon).toFixed(4)}</a></td></tr>`).join("") || '<tr><td colspan="3">Nadie ha compartido ubicación</td></tr>';
-  $("#nv").innerHTML = S.nov.map(n => `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><b>${esc(n.tipo)}</b> ${tag(n.prioridad)}<br><small>${esc(n.autor_nombre || "")} · ${fmt(n.created_at)}</small><div>${esc(n.descripcion || "")}</div></div>`).join("") || "<small>Sin novedades</small>";
+  $("#pb").innerHTML = S.pos.slice().sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).map(p => `<tr><td><b>${esc(p.nombre || "—")}</b></td><td>${ago(p.updated_at)} ${Date.now() - new Date(p.updated_at) < 3600e3 ? tag("verificada", "en línea") : tag("descartada", "sin señal")}</td><td>${p.lat != null ? `<a target="_blank" href="https://www.google.com/maps?q=${p.lat},${p.lon}">${(+p.lat).toFixed(4)}, ${(+p.lon).toFixed(4)}</a>` : "—"}</td></tr>`).join("") || '<tr><td colspan="3" style="color:var(--mut);padding:16px">Nadie ha compartido ubicación</td></tr>';
+  $("#nv").innerHTML = S.nov.slice(0, 60).map(n => { const fo = (n.fotos || []).slice(0, 4).map((u, i) => `<a target="_blank" href="${esc(u)}">foto ${i + 1}</a>`).join(" · "); return `<div style="padding:10px 0;border-bottom:1px solid var(--line)"><b>${esc(n.tipo || "")}</b> ${tag(n.prioridad || "media")}<br><small style="color:var(--mut)">${esc(n.autor_nombre || "")} · ${fmt(n.created_at)}${n.lat != null ? ` · <a target="_blank" href="https://www.google.com/maps?q=${n.lat},${n.lon}">ubicación</a>` : ""}</small>${n.descripcion ? `<div>${esc(n.descripcion)}</div>` : ""}${fo ? `<small>${fo}</small>` : ""}</div>`; }).join("") || '<small style="color:var(--mut)">Sin novedades</small>';
 }
+
+/* ---------- informe ---------- */
+function paintInf() {
+  const rep = fRep(), c = charts(rep), k = kpis(), per = dias() ? `últimos ${dias()} días` : "todo el período", m = $("#fMun").value, o = $("#fOri").value;
+  const rows = rep.slice().sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+  $("#inf").innerHTML = `<div class="rephead"><div class="brand" style="border:0"><div class="esc">G</div><b>Gobernación<br>de Caldas</b></div><div><h2>Informe de incendios reportados en campo</h2><div class="meta">Período: ${per} · Municipio: ${esc(m || "todos")} · Origen: ${o === "app" ? "App de guardabosques" : o === "qfield" ? "QField" : "App y QField"} · Generado el ${fmt(Date.now())} por ${esc(S.nombre)}</div></div></div>
+  <div class="kpis">${k.slice(0, 4).map(x => `<div class="kpi" style="--c:${x[2]}"><span>${x[0]}</span><b>${x[1]}</b></div>`).join("")}</div>
+  <div class="g2"><div class="card"><h3>Reportes por día</h3>${c.dia}</div><div class="card"><h3>Estado de los incendios</h3>${c.est}</div></div>
+  <div class="g2"><div class="card"><h3>Municipios con más reportes</h3><div class="hb">${c.mun}</div></div><div class="card"><h3>Cobertura afectada</h3><div class="hb">${c.cob}</div></div></div>
+  <div class="card"><h3>Detalle de reportes (${rows.length})</h3><div class="tw"><table><thead><tr><th>Fecha</th><th>Municipio / vereda</th><th>Cobertura</th><th>Área (ha)</th><th>Estado</th><th>Validación</th><th>Reportó</th></tr></thead><tbody>${rows.map(r => `<tr><td>${fmt(r.fecha)}</td><td>${esc(lugar(r))}</td><td>${esc(r.cobertura || "")}</td><td>${r.area ?? ""}</td><td>${esc(cap(r.estado))}</td><td>${r.val === "pendiente" ? "Por validar" : cap(r.val)}</td><td>${esc(r.por || "")}</td></tr>`).join("") || '<tr><td colspan="7">Sin reportes</td></tr>'}</tbody></table></div></div>
+  <div class="meta">Fuente de datos: reportes de campo (app Incendios Caldas) y QField · Gobernación de Caldas. Los reportes rechazados no se incluyen. Cifras preliminares sujetas a validación técnica.</div>`;
+}
+$("#prn").onclick = () => { paintInf(); document.body.classList.add("printing"); setTimeout(() => { window.print(); document.body.classList.remove("printing"); }, 200); };
 boot();
 </script>
 </body>
