@@ -563,8 +563,10 @@ $("#pickNo").onclick = () => { $("#pick").classList.remove("show"); S.picking = 
 $("#pickOk").onclick = () => { const c = map.getCenter(); const tgt = S.pickTarget === "alerta" ? S.alForm : S.form; tgt.lat = c.lat; tgt.lon = c.lng; tgt.acc = null; $("#pick").classList.remove("show"); S.picking = false; go(S.pickTarget === "alerta" ? "alertas" : "reportar"); };
 $("#repSend").onclick = async () => {
   readForm(); const f = S.form;
-  if (f.lat == null) { if (S.fix) { f.lat = S.fix.lat; f.lon = S.fix.lon; f.acc = S.fix.acc; } else return toast("Falta la ubicación del incendio"); }
-  if (!f.municipio) return toast("Selecciona el municipio");
+  if (f.lat == null) { if (S.fix) { f.lat = S.fix.lat; f.lon = S.fix.lon; f.acc = S.fix.acc; paintGpsBox(); } else { startGPS(false); return repWarn("Falta la ubicación: toca «Usar mi GPS» o «Elegir en el mapa»", "#gpsBox"); } }
+  if (!f.municipio) return repWarn("Selecciona el municipio del incendio", "#fMun");
+  if (repSending) return; repSending = true; const sbtn = $("#repSend"), stxt = sbtn.innerHTML; sbtn.disabled = true; sbtn.textContent = "Enviando…";
+  try {
   const row = { id: f.id, created_at: new Date().toISOString(), lat: f.lat, lon: f.lon, precision_m: f.acc ? Math.round(f.acc) : null, municipio: f.municipio, vereda: f.vereda || null,
     cobertura: f.cobertura, area_ha: f.area_ha === "" ? null : +f.area_ha, causa: f.causa, estado: f.estado, observaciones: f.observaciones || null, contacto: f.contacto || null,
     origen: "app", nivel: isTec() ? "tecnico" : "ciudadano", estado_validacion: isTec() ? "validado" : "pendiente", reportado_por: S.user ? S.user.id : null, reportado_por_nombre: S.nombre || null, fotos: [] };
@@ -574,7 +576,13 @@ $("#repSend").onclick = async () => {
   if (!ONLINE && row.estado_validacion === "pendiente") await DB.insert(C.TABLA_ALERTAS, { id: uid(), created_at: row.created_at, fuente: "ciudadano", titulo: "Reporte por verificar: " + row.municipio, descripcion: row.observaciones, lat: row.lat, lon: row.lon, municipio: row.municipio, vereda: row.vereda, prioridad: "alta", estado: "nueva", reporte_id: row.id, fotos: [] });
   S.form = null; toast(navigator.onLine || !ONLINE ? "Reporte enviado" : "Guardado: se enviará cuando haya señal", 3500);
   go("mapa"); paintMap(); map.setView([row.lat, row.lon], 14);
+  } catch (e) { toast("No se pudo guardar el reporte: " + (e && e.message || e), 6000); } finally { repSending = false; sbtn.disabled = false; sbtn.innerHTML = stxt; }
 };
+let repSending = false;
+function repWarn(msg, sel) {
+  toast(msg, 6000); navigator.vibrate && navigator.vibrate(150);
+  const el = $(sel); if (el) { el.scrollIntoView({ block: "center", behavior: "smooth" }); const o = el.style.outline; el.style.outline = "3px solid #d32f2f"; el.style.outlineOffset = "2px"; setTimeout(() => { el.style.outline = o; }, 3500); }
+}
 
 /* ====================== Alertas por verificar ====================== */
 const FUENTES = { firms: "Satélite FIRMS", ideam: "IDEAM", ciudadano: "Reporte ciudadano", guardabosque: "Guardabosque", bomberos: "Bomberos / Defensa Civil", llamada: "Llamada o radio", redes: "Redes sociales", otro: "Otra fuente" };
@@ -866,8 +874,11 @@ async function loadAll() {
     S.firms = (await DB.list(C.TABLA_FIRMS, 1500).catch(() => [])) || [];
     if (isStaff()) {
       S.novedades = await DB.list(C.TABLA_NOVEDADES, 100); S.posiciones = await DB.list(C.TABLA_POSICIONES, 100);
-      const prevA = new Set(S.alertas.map(a => a.id)); const al = await DB.list(C.TABLA_ALERTAS, 300);
+      const prevA = new Set(S.alertas.map(a => a.id)); const prevAS = new Map(S.alertas.map(a => [a.id, a.estado + "|" + (a.asignado_a || "")])); const prevR = new Set(S.reportes.map(r => r.id)); const al = await DB.list(C.TABLA_ALERTAS, 300);
       const nuevasA = prevA.size ? al.filter(a => !prevA.has(a.id) && a.estado === "nueva" && a.creado_por !== (S.user && S.user.id)) : []; S.alertas = al; if (nuevasA.length) notifyAlertas(nuevasA);
+      if (prevA.size) { const me2 = S.user && S.user.id; const tom = al.filter(a => prevA.has(a.id) && prevAS.get(a.id) !== a.estado + "|" + (a.asignado_a || "") && ["asignada", "en_camino"].includes(a.estado) && a.asignado_a && a.asignado_a !== me2);
+        if (tom.length) { navigator.vibrate && navigator.vibrate([200, 100, 200]); toast(`${tom[0].asignado_nombre || "Alguien"} ${tom[0].estado === "en_camino" ? "va en camino a" : "tomó"} la alerta: ${tom[0].titulo}`, 7000); }
+        const nr = S.reportes.filter(r => !prevR.has(r.id) && r.reportado_por !== me2 && r.estado !== "extinguido"); if (!tom.length && prevR.size && nr.length) { navigator.vibrate && navigator.vibrate([250, 120, 250]); toast(`Nuevo reporte de incendio: ${nr[0].municipio || ""}`, 7000); } }
       S.perfiles = ONLINE ? (isTec() ? (await DB.list(C.TABLA_PERFILES, 200)).filter(p => p.rol !== "ciudadano") : []) : [{ id: "demo-guardabosque", nombre: "Demo guardabosque" }, { id: "demo-x", nombre: "Luis (guardabosque)" }];
       paintBadgeAl();
       const prev = new Set(S.mensajes.map(m => m.id)); const ms = await DB.list(C.TABLA_MENSAJES, 300);
