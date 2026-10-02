@@ -126,7 +126,8 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:16px 10px 28px}
   </nav>
 </header>
 <div class="filt" id="filt">
-  <label>Período <select id="fPer"><option value="7">Últimos 7 días</option><option value="30" selected>Últimos 30 días</option><option value="90">Últimos 90 días</option><option value="365">Último año</option><option value="0">Todo el tiempo</option></select></label>
+  <label>Período <select id="fPer"><option value="7">Últimos 7 días</option><option value="30" selected>Últimos 30 días</option><option value="90">Últimos 90 días</option><option value="365">Último año</option><option value="0">Todo el tiempo</option><option value="rango">Rango de fechas…</option></select></label>
+  <span id="fRg" class="hide" style="display:inline-flex;gap:8px;align-items:center"><label>Desde <input type="date" id="fD1"></label><label>Hasta <input type="date" id="fD2"></label></span>
   <label>Municipio <select id="fMun"><option value="">Todos</option></select></label>
   <label>Origen <select id="fOri"><option value="">App y QField</option><option value="app">App de guardabosques</option><option value="qfield">QField</option></select></label>
   <span class="cnt" id="fCnt"></span>
@@ -155,14 +156,14 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:16px 10px 28px}
       <select id="rVal"><option value="">Toda validación</option><option value="pendiente">Por validar</option><option value="validado">Validados</option><option value="rechazado">Rechazados</option></select>
       <input type="search" id="rQ" placeholder="Buscar municipio, vereda, reportante…" style="min-width:240px">
       <span class="cnt" id="rCnt"></span>
-      <button class="btn" id="csv">Descargar CSV</button><button class="btn p" id="toInf">Generar informe</button>
+      <button class="btn" id="csv">Descargar CSV</button><button class="btn p" id="toInf">Generar informe</button><button class="btn r" id="rDelAll" style="display:none">Eliminar los filtrados</button><span id="rSelBar" style="display:none;gap:6px"><button class="btn" id="rRei">Reiniciar seleccionados</button><button class="btn r" id="rDelSel">Eliminar seleccionados</button></span>
     </div>
-    <div class="tw"><table><thead><tr data-sort><th data-k="fecha">Fecha</th><th data-k="municipio">Municipio / vereda</th><th data-k="cobertura">Cobertura</th><th data-k="area">Área (ha)</th><th data-k="estado">Estado</th><th data-k="val">Validación</th><th data-k="por">Reportó</th><th>Fotos</th></tr></thead><tbody id="rb"></tbody></table></div>
+    <div class="tw"><table><thead><tr data-sort><th><input type="checkbox" id="rAll" title="Seleccionar todos los filtrados"></th><th data-k="fecha">Fecha</th><th data-k="municipio">Municipio / vereda</th><th data-k="cobertura">Cobertura</th><th data-k="area">Área (ha)</th><th data-k="estado">Estado</th><th data-k="val">Validación</th><th data-k="por">Reportó</th><th>Fotos</th></tr></thead><tbody id="rb"></tbody></table></div>
   </div></section>
 
   <section id="t-alertas" class="hide"><div class="card">
     <div class="bar"><select id="aEst"><option value="abiertas">Abiertas</option><option value="">Todas</option><option>nueva</option><option>asignada</option><option>en_camino</option><option>verificada</option><option>descartada</option></select><span class="cnt" id="aCnt"></span></div>
-    <div class="tw"><table><thead><tr><th>Fecha</th><th>Fuente</th><th>Alerta</th><th>Municipio</th><th>Prioridad</th><th>Estado</th><th>Asignada a</th><th></th></tr></thead><tbody id="ab"></tbody></table></div>
+    <div class="tw"><table><thead><tr><th><input type="checkbox" id="aAll" title="Seleccionar todas"></th><th>Fecha</th><th>Fuente</th><th>Alerta</th><th>Municipio</th><th>Prioridad</th><th>Estado</th><th>Asignada a</th><th></th></tr></thead><tbody id="ab"></tbody></table></div>
   </div></section>
 
   <section id="t-chat" class="hide"><div class="chat"><div class="chs" id="chs"></div>
@@ -215,6 +216,18 @@ function popAl(a) {
 const PAL = ["#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f", "#edc948", "#b07aa1", "#ff9da7", "#9c755f", "#bab0ac"];
 const REP = r => ({ id: r.id, fecha: r.fecha_hora, lat: r.lat, lon: r.lon, municipio: r.municipio, vereda: r.vereda, cobertura: r.cobertura, area: r.area_ha, estado: String(r.estado || "").toLowerCase(), val: r.rechazado ? "rechazado" : r.validado ? "validado" : "pendiente", por: r.reportante, causa: r.causa_probable, obs: r.observaciones, origen: r.origen || "app", fotos: Array.isArray(r.fotos) ? r.fotos : [], nivel: r.nivel });
 const isTec = () => ["tecnico", "coordinador", "planeacion"].includes(S.rol);
+const SEL = { r: new Set(), a: new Set(), m: new Set() };
+const isCoord = () => ["coordinador", "planeacion"].includes(S.rol);
+const SQL_BORRADO = "create policy alertas_borrar on public.alertas for delete to authenticated using (rol_actual() = any (array['coordinador','planeacion'])); create policy msg_borrar on public.mensajes for delete to authenticated using (rol_actual() = any (array['coordinador','planeacion']));";
+const SQL_AVISO = "La base aún no permite borrar esto. Copie el SQL (Ctrl+C), péguelo en Supabase → SQL Editor y ejecútelo una vez.";
+async function borrar(tabla, ids) {
+  if (!ids.length) return 0;
+  const { data, error } = await sb.from(tabla).delete().in("id", ids).select("id");
+  if (error) throw error;
+  if (!data || data.length < ids.length) { if (tabla !== C.TABLA_REPORTES) prompt(SQL_AVISO, SQL_BORRADO); throw new Error(tabla === C.TABLA_REPORTES ? "No se pudo borrar (sin permiso)" : "Borrado no permitido todavía" + (data && data.length ? ` (se borraron ${data.length} de ${ids.length})` : "")); }
+  return data.length;
+}
+const fuerte = (n, que) => (n > 1 ? prompt(`Va a eliminar ${n} ${que} de forma definitiva.\nEscriba ELIMINAR para confirmar.`) === "ELIMINAR" : confirm(`¿Eliminar ${que.replace(/s$/, "")} de forma definitiva?`));
 const abiertas = a => ["nueva", "asignada", "en_camino"].includes(a.estado);
 const lugar = r => [r.vereda, r.municipio].filter(Boolean).join(" · ") || "sin ubicación";
 
@@ -291,14 +304,17 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) { cl
 
 /* ---------- filtros ---------- */
 function fillMun() { const s = $("#fMun"), cur = s.value, set = new Set(S.rep.map(r => r.municipio).filter(Boolean).concat(S.al.map(a => a.municipio).filter(Boolean))); s.innerHTML = '<option value="">Todos</option>' + [...set].sort().map(m => `<option ${m === cur ? "selected" : ""}>${esc(m)}</option>`).join(""); s.value = cur; }
-const dias = () => +$("#fPer").value;
-const desde = (k = 0) => dias() ? Date.now() - (k + 1) * dias() * 864e5 : 0;
-const hasta = (k = 0) => k ? Date.now() - k * dias() * 864e5 : Infinity;
-function inPer(d, k = 0) { const t = new Date(d).getTime(); return !dias() ? k === 0 : t >= desde(k) && t < hasta(k); }
+const esRango = () => $("#fPer").value === "rango";
+const rg = () => { const a = $("#fD1").value, b = $("#fD2").value; const i = a ? new Date(a + "T00:00:00").getTime() : 0, f = b ? new Date(b + "T23:59:59.999").getTime() : Date.now(); return { i, f, n: Math.max(1, Math.round((f - (i || f - 30 * 864e5)) / 864e5)) }; };
+const dias = () => esRango() ? rg().n : +$("#fPer").value;
+const desde = (k = 0) => esRango() ? (() => { const r = rg(); const i = r.i || r.f - 30 * 864e5; return i - k * (r.f - i); })() : (dias() ? Date.now() - (k + 1) * dias() * 864e5 : 0);
+const hasta = (k = 0) => esRango() ? (() => { const r = rg(), i = r.i || r.f - 30 * 864e5; return r.f - k * (r.f - i); })() : (k ? Date.now() - k * dias() * 864e5 : Infinity);
+function inPer(d, k = 0) { const t = new Date(d).getTime(); if (esRango()) return t >= desde(k) && t <= hasta(k); return !dias() ? k === 0 : t >= desde(k) && t < hasta(k); }
+const perTxt = () => esRango() ? `del ${$("#fD1").value || "inicio"} al ${$("#fD2").value || "hoy"}` : dias() ? `últimos ${dias()} días` : "todo el período";
 function fRep(k = 0) { const m = $("#fMun").value, o = $("#fOri").value; return S.rep.filter(r => r.val !== "rechazado" && (!m || r.municipio === m) && (!o || r.origen === o) && inPer(r.fecha, k)); }
 function fRepAll() { const m = $("#fMun").value, o = $("#fOri").value; return S.rep.filter(r => (!m || r.municipio === m) && (!o || r.origen === o) && inPer(r.fecha)); }
 function fAl() { const m = $("#fMun").value; return S.al.filter(a => (!m || a.municipio === m) && inPer(a.created_at)); }
-["fPer", "fMun", "fOri"].forEach(i => $("#" + i).onchange = paintAll);
+["fPer", "fMun", "fOri", "fD1", "fD2"].forEach(i => $("#" + i).onchange = () => { if (i === "fPer") { const on = esRango(); $("#fRg").classList.toggle("hide", !on); if (on && !$("#fD2").value) { const h = new Date(), a = new Date(Date.now() - 30 * 864e5); $("#fD2").value = h.toISOString().slice(0, 10); $("#fD1").value = a.toISOString().slice(0, 10); } } paintAll(); });
 
 /* ---------- navegación ---------- */
 function go(t) { S.tab = t; $$("#nav button").forEach(x => x.classList.toggle("on", x.dataset.t === t)); $$("main section").forEach(s => s.classList.toggle("hide", s.id !== "t-" + t)); $("#filt").classList.toggle("hide", t === "chat"); if (t === "resumen") setTimeout(() => map.invalidateSize(), 60); if (t === "chat") { markSeen(); paintChs(); paintChat(); } paintAll(); }
@@ -310,7 +326,7 @@ function paintAll() { paintKpis(); paintMap(); paintGraf(); paintRep(); paintAl(
 function hbars(rows, col) { const mx = Math.max(1, ...rows.map(x => x[1])); return rows.length ? rows.map(([k, v], i) => `<div><span title="${esc(k)}">${esc(k)}</span><i style="width:${Math.max(3, v / mx * 100)}%;background:${col || PAL[i % PAL.length]}"></i><b>${v}</b></div>`).join("") : '<small style="color:var(--mut)">Sin datos en el período</small>'; }
 function donut(rows) { const tot = rows.reduce((s, x) => s + x[1], 0); if (!tot) return '<small style="color:var(--mut)">Sin datos en el período</small>'; let a = 0; const seg = rows.map(x => { const p = x[1] / tot * 100, s = `${x[2]} ${a}% ${a + p}%`; a += p; return s; }).join(","); return `<div class="donut"><div class="ring" style="background:conic-gradient(${seg})" data-t="${tot}"></div><div class="lg">${rows.map(x => `<div><i style="background:${x[2]}"></i>${esc(cap(x[0]))} <b>${x[1]}</b> <span style="color:var(--mut)">(${Math.round(x[1] / tot * 100)}%)</span></div>`).join("")}</div></div>`; }
 function linea(rep) {
-  const n = dias() || 90, days = []; for (let i = n - 1; i >= 0; i--) { const d = new Date(Date.now() - i * 864e5); days.push({ k: d.toISOString().slice(0, 10), v: 0, ha: 0 }); }
+  const n = Math.min(dias() || 90, 366), days = [], fin = esRango() ? rg().f : Date.now(); for (let i = n - 1; i >= 0; i--) { const d = new Date(fin - i * 864e5); days.push({ k: d.toISOString().slice(0, 10), v: 0, ha: 0 }); }
   const ix = Object.fromEntries(days.map((d, i) => [d.k, i])); rep.forEach(r => { const k = (r.fecha || "").slice(0, 10); if (k in ix) { days[ix[k]].v++; days[ix[k]].ha += +r.area || 0; } });
   const W = 760, H = 220, pl = 34, pb = 24, pt = 10, mx = Math.max(2, ...days.map(d => d.v)), bw = (W - pl - 8) / days.length;
   const ys = v => H - pb - v / mx * (H - pb - pt);
@@ -371,10 +387,11 @@ function paintMap() {
 function repFilt() { const e = $("#rEst").value, v = $("#rVal").value, t = $("#rQ").value.toLowerCase(), { k, d } = S.sort; return fRepAll().filter(r => (!e || r.estado === e) && (!v || r.val === v) && (!t || [r.municipio, r.vereda, r.por, r.cobertura, r.causa].join(" ").toLowerCase().includes(t))).sort((a, b) => { const x = a[k] ?? "", y = b[k] ?? ""; return (x > y ? 1 : x < y ? -1 : 0) * d; }); }
 $("#t-reportes thead").onclick = e => { const k = e.target.dataset.k; if (!k) return; S.sort = { k, d: S.sort.k === k ? -S.sort.d : -1 }; paintRep(); };
 function paintRep() {
-  const rows = repFilt(); $("#rCnt").textContent = `${rows.length} reportes`;
-  $("#rb").innerHTML = rows.map(r => `<tr class="clk" data-r="${r.id}"><td>${fmt(r.fecha)}</td><td><b>${esc(r.municipio || "—")}</b><br><small style="color:var(--mut)">${esc(r.vereda || "")}</small></td><td>${esc(r.cobertura || "")}</td><td>${r.area ?? ""}</td><td>${tag(r.estado)}</td><td>${tag(r.val, r.val === "pendiente" ? "por validar" : r.val)}</td><td>${esc(r.por || "—")}<br><small style="color:var(--mut)">${r.origen === "qfield" ? "QField" : "App"}</small></td><td>${r.fotos.length ? "📷 " + r.fotos.length : ""}</td></tr>`).join("") || '<tr><td colspan="8" style="color:var(--mut);padding:20px">Sin reportes con estos filtros</td></tr>';
+  const rows = repFilt(); $("#rCnt").textContent = `${rows.length} reportes`; $("#rDelAll").style.display = isCoord() && rows.length ? "" : "none"; $("#rDelAll").textContent = `Eliminar los filtrados (${rows.length})`; { const ids = new Set(rows.map(r => r.id)); [...SEL.r].forEach(i => { if (!ids.has(i)) SEL.r.delete(i); }); } updSel();
+  $("#rb").innerHTML = rows.map(r => `<tr class="clk" data-r="${r.id}"><td><input type="checkbox" data-sel="${r.id}" ${SEL.r.has(r.id) ? "checked" : ""}></td><td>${fmt(r.fecha)}</td><td><b>${esc(r.municipio || "—")}</b><br><small style="color:var(--mut)">${esc(r.vereda || "")}</small></td><td>${esc(r.cobertura || "")}</td><td>${r.area ?? ""}</td><td>${tag(r.estado)}</td><td>${tag(r.val, r.val === "pendiente" ? "por validar" : r.val)}</td><td>${esc(r.por || "—")}<br><small style="color:var(--mut)">${r.origen === "qfield" ? "QField" : "App"}</small></td><td>${r.fotos.length ? "📷 " + r.fotos.length : ""}</td></tr>`).join("") || '<tr><td colspan="9" style="color:var(--mut);padding:20px">Sin reportes con estos filtros</td></tr>';
 }
-$("#rb").onclick = e => { const tr = e.target.closest("[data-r]"); if (tr) openRep(tr.dataset.r); };
+$("#rDelAll").onclick = async () => { const ids = repFilt().map(r => r.id); if (!fuerte(ids.length, "reportes")) return; try { const n = await borrar(C.TABLA_REPORTES, ids); alert(n + " reportes eliminados"); } catch (e) { alert(e.message); } loadAll(); };
+$("#rb").onclick = e => { if (e.target.closest("input")) return; const tr = e.target.closest("[data-r]"); if (tr) openRep(tr.dataset.r); };
 function openRep(id) {
   const r = S.rep.find(x => x.id === id); if (!r) return; const d = $("#dr"), ch = "inc:" + r.id, nmsg = S.msg.filter(m => m.canal === ch).length;
   d.innerHTML = `<button class="x" id="dx">×</button><h2>${esc(lugar(r))}</h2><div>${tag(r.estado)} ${tag(r.val, r.val === "pendiente" ? "por validar" : r.val)}</div>
@@ -382,6 +399,16 @@ function openRep(id) {
   ${r.fotos.length ? `<div class="ph">${r.fotos.map(u => `<a href="${esc(u)}" target="_blank"><img src="${esc(u)}" alt="foto"></a>`).join("")}</div>` : ""}
   <div class="bar" style="margin-top:14px">${isTec() ? `<label>Estado <select id="dEst">${["activo", "controlado", "extinguido"].map(x => `<option ${x === r.estado ? "selected" : ""}>${x}</option>`).join("")}</select></label>` : ""}</div>
   <div class="bar">${isTec() && r.val !== "validado" ? `<button class="btn p" data-v="validado">Validar</button>` : ""}${isTec() && r.val !== "rechazado" ? `<button class="btn r" data-v="rechazado">Rechazar</button>` : ""}<button class="btn" id="dCh">Chat del incendio (${nmsg})</button></div>`;
+  if (isCoord()) {
+    const ins = (id, lab, v, t = "text") => `<label style="display:block;margin-top:8px"><small style="color:var(--mut)">${lab}</small><input id="${id}" type="${t}" value="${esc(v ?? "")}" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:8px"></label>`;
+    d.insertAdjacentHTML("beforeend", `<details style="margin-top:14px;border-top:1px solid var(--line);padding-top:10px" open><summary style="font-weight:700;cursor:pointer">Editar y gestionar</summary>
+      ${ins("eMun", "Municipio", r.municipio)}${ins("eVer", "Vereda", r.vereda)}${ins("eAre", "Área (ha)", r.area, "number")}${ins("eCau", "Causa probable", r.causa)}${ins("eCob", "Cobertura", r.cobertura)}
+      <label style="display:block;margin-top:8px"><small style="color:var(--mut)">Observaciones</small><textarea id="eObs" rows="3" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:8px">${esc(r.obs || "")}</textarea></label>
+      <div class="bar" style="margin-top:10px"><button class="btn p" id="eSave">Guardar cambios</button><button class="btn" id="ePend">Volver a «por validar»</button><button class="btn r" id="eDel">Eliminar reporte</button></div></details>`);
+    $("#eSave").onclick = async () => { const { error } = await sb.from(C.TABLA_REPORTES).update({ municipio: $("#eMun").value.trim() || null, vereda: $("#eVer").value.trim() || null, area_ha: $("#eAre").value === "" ? null : +$("#eAre").value, causa_probable: $("#eCau").value.trim() || null, cobertura: $("#eCob").value.trim() || null, observaciones: $("#eObs").value.trim() || null }).eq("id", r.id); if (error) alert(error.message); else { d.classList.remove("on"); loadAll(); } };
+    $("#ePend").onclick = async () => { const { error } = await sb.from(C.TABLA_REPORTES).update({ validado: false, rechazado: false }).eq("id", r.id); if (error) alert(error.message); else { d.classList.remove("on"); loadAll(); } };
+    $("#eDel").onclick = async () => { if (!confirm("¿Eliminar este reporte de forma definitiva?")) return; try { await borrar(C.TABLA_REPORTES, [r.id]); d.classList.remove("on"); loadAll(); } catch (e) { alert(e.message); } };
+  }
   d.classList.add("on"); $("#dx").onclick = () => d.classList.remove("on");
   $("#dCh").onclick = () => { d.classList.remove("on"); S.canal = ch; go("chat"); };
   const de = $("#dEst"); if (de) de.onchange = async () => { const { error } = await sb.from(C.TABLA_REPORTES).update({ estado: cap(de.value) }).eq("id", r.id); if (error) alert(error.message); else loadAll(); };
@@ -398,12 +425,43 @@ $("#aEst").oninput = paintAl;
 function paintAl() {
   const f = $("#aEst").value, rows = fAl().concat(S.al.filter(a => abiertas(a) && !fAl().includes(a))).filter(a => !f || (f === "abiertas" ? abiertas(a) : a.estado === f)).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   $("#aCnt").textContent = `${rows.length} alertas`;
+  { const ids = new Set(rows.map(a => a.id)); [...SEL.a].forEach(i => { if (!ids.has(i)) SEL.a.delete(i); }); }
+  if (isCoord() && !$("#aTools")) $("#aCnt").insertAdjacentHTML("afterend", '<span id="aTools" style="display:inline-flex;gap:6px;flex-wrap:wrap"><button class="btn" id="aReiSel">Reiniciar seleccionadas</button><button class="btn r" id="aDescSel">Descartar seleccionadas</button><button class="btn r" id="aDelSel">Eliminar seleccionadas</button><button class="btn" id="aReiAll">Reiniciar las abiertas</button><button class="btn r" id="aDelDesc">Eliminar descartadas</button><button class="btn r" id="aDelAll">Eliminar TODAS</button></span>');
   const staff = S.perf.filter(p => ["guardabosque", "tecnico", "coordinador", "planeacion"].includes(p.rol));
-  $("#ab").innerHTML = rows.map(a => `<tr><td>${fmt(a.created_at)}</td><td>${esc(a.fuente || "")}</td><td><b>${esc(a.titulo)}</b><br><small style="color:var(--mut)">${esc(a.descripcion || "")}</small></td><td>${esc(a.municipio || "")}</td><td>${tag(a.prioridad || "media")}</td><td>${tag(a.estado)}</td>
+  $("#ab").innerHTML = rows.map(a => `<tr><td><input type="checkbox" data-asel="${a.id}" ${SEL.a.has(a.id) ? "checked" : ""}></td><td>${fmt(a.created_at)}</td><td>${esc(a.fuente || "")}</td><td><b>${esc(a.titulo)}</b><br><small style="color:var(--mut)">${esc(a.descripcion || "")}</small></td><td>${esc(a.municipio || "")}</td><td>${tag(a.prioridad || "media")}</td><td>${tag(a.estado)}</td>
   <td>${abiertas(a) ? `<select data-as="${a.id}"><option value="">Asignar a…</option>${staff.map(p => `<option value="${p.user_id}|${esc(p.nombre || p.rol)}" ${p.user_id === a.asignado_a ? "selected" : ""}>${esc(p.nombre || p.rol)} (${esc(p.rol)})</option>`).join("")}</select>` : esc(a.asignado_nombre || "—")}</td>
-  <td>${abiertas(a) ? `<button class="btn r s" data-d="${a.id}">Descartar</button>` : ""}</td></tr>`).join("") || '<tr><td colspan="8" style="color:var(--mut);padding:20px">Sin alertas</td></tr>';
+  <td style="white-space:nowrap">${abiertas(a) ? `<button class="btn r s" data-d="${a.id}">Descartar</button> ` : ""}${isCoord() ? `${a.estado !== "nueva" ? `<button class="btn s" data-rei="${a.id}">Reiniciar</button> ` : ""}<button class="btn r s" data-del="${a.id}">Eliminar</button>` : ""}</td></tr>`).join("") || '<tr><td colspan="9" style="color:var(--mut);padding:20px">Sin alertas</td></tr>';
 }
 $("#ab").onchange = async e => { const id = e.target.dataset.as; if (!id || !e.target.value) return; const [u2, nom] = e.target.value.split("|"); const { error } = await sb.from(C.TABLA_ALERTAS).update({ asignado_a: u2, asignado_nombre: nom, estado: "asignada" }).eq("id", id); if (error) alert(error.message); else loadAll(); };
+function updSel() {
+  const n = SEL.r.size; if ($("#rSelBar")) { $("#rSelBar").style.display = isCoord() && n ? "inline-flex" : "none"; $("#rRei").textContent = `Reiniciar seleccionados (${n})`; $("#rDelSel").textContent = `Eliminar seleccionados (${n})`; }
+  const all = repFilt(); if ($("#rAll")) $("#rAll").checked = all.length > 0 && all.every(r => SEL.r.has(r.id));
+  const m = SEL.a.size; if ($("#aReiSel")) { $("#aReiSel").textContent = `Reiniciar seleccionadas (${m})`; $("#aDescSel").textContent = `Descartar seleccionadas (${m})`; $("#aDelSel").textContent = `Eliminar seleccionadas (${m})`; }
+}
+document.addEventListener("click", async e => {
+  const t = e.target; if (!t.id && !t.dataset) return;
+  if (t.dataset.sel) { t.checked ? SEL.r.add(t.dataset.sel) : SEL.r.delete(t.dataset.sel); return updSel(); }
+  if (t.dataset.asel) { t.checked ? SEL.a.add(t.dataset.asel) : SEL.a.delete(t.dataset.asel); return updSel(); }
+  if (t.dataset.ms) { t.checked ? SEL.m.add(t.dataset.ms) : SEL.m.delete(t.dataset.ms); return paintChat(true); }
+  if (t.id === "rAll") { repFilt().forEach(r => t.checked ? SEL.r.add(r.id) : SEL.r.delete(r.id)); paintRep(); return; }
+  if (t.id === "aAll") { $$("[data-asel]").forEach(c => { c.checked = t.checked; t.checked ? SEL.a.add(c.dataset.asel) : SEL.a.delete(c.dataset.asel); }); return updSel(); }
+  if (t.id === "mAll") { S.msg.filter(m => (m.canal || "general") === S.canal).forEach(m => SEL.m.add(m.id)); return paintChat(true); }
+  const run = async f => { try { await f(); } catch (er) { alert(er.message || er); } loadAll(); };
+  if (t.dataset.rei) return run(async () => { const { error } = await sb.from(C.TABLA_ALERTAS).update({ estado: "nueva", asignado_a: null, asignado_nombre: null }).eq("id", t.dataset.rei); if (error) throw error; });
+  if (t.dataset.del) { if (!confirm("¿Eliminar esta alerta de forma definitiva?")) return; return run(() => borrar(C.TABLA_ALERTAS, [t.dataset.del])); }
+  if (t.id === "aReiAll") { const ab = S.al.filter(abiertas); if (!ab.length || !confirm(`¿Reiniciar ${ab.length} alertas abiertas? Volverán a «nueva» y sin asignar.`)) return; return run(async () => { const { error } = await sb.from(C.TABLA_ALERTAS).update({ estado: "nueva", asignado_a: null, asignado_nombre: null }).in("id", ab.map(a => a.id)); if (error) throw error; }); }
+  if (t.id === "aDelDesc") { const l = S.al.filter(a => a.estado === "descartada"); if (!l.length) return alert("No hay alertas descartadas"); if (!fuerte(l.length, "alertas")) return; return run(() => borrar(C.TABLA_ALERTAS, l.map(a => a.id))); }
+  if (t.id === "aDelAll") { const l = S.al.slice(); if (!l.length) return; if (!fuerte(Math.max(l.length, 2), "alertas")) return; return run(() => borrar(C.TABLA_ALERTAS, l.map(a => a.id))); }
+  if (t.dataset.md) { if (!confirm("¿Eliminar este mensaje?")) return; return run(() => borrar(C.TABLA_MENSAJES, [t.dataset.md])); }
+  if (t.id === "rDelSel") { const ids = [...SEL.r]; if (!ids.length || !fuerte(ids.length, "reportes")) return; return run(async () => { await borrar(C.TABLA_REPORTES, ids); SEL.r.clear(); }); }
+  if (t.id === "rRei") { const ids = [...SEL.r]; if (!ids.length || !confirm(`¿Reiniciar ${ids.length} reportes a «por validar»?`)) return; return run(async () => { const { error } = await sb.from(C.TABLA_REPORTES).update({ validado: false, rechazado: false }).in("id", ids); if (error) throw error; SEL.r.clear(); }); }
+  if (t.id === "aReiSel") { const ids = [...SEL.a]; if (!ids.length) return alert("Seleccione alertas con las casillas"); return run(async () => { const { error } = await sb.from(C.TABLA_ALERTAS).update({ estado: "nueva", asignado_a: null, asignado_nombre: null }).in("id", ids); if (error) throw error; SEL.a.clear(); }); }
+  if (t.id === "aDescSel") { const ids = [...SEL.a]; if (!ids.length) return alert("Seleccione alertas con las casillas"); return run(async () => { const { error } = await sb.from(C.TABLA_ALERTAS).update({ estado: "descartada" }).in("id", ids); if (error) throw error; SEL.a.clear(); }); }
+  if (t.id === "aDelSel") { const ids = [...SEL.a]; if (!ids.length) return alert("Seleccione alertas con las casillas"); if (!fuerte(ids.length, "alertas")) return; return run(async () => { await borrar(C.TABLA_ALERTAS, ids); SEL.a.clear(); }); }
+  if (t.id === "mDelSel") { const ids = [...SEL.m]; if (!ids.length) return alert("Seleccione mensajes con las casillas"); if (!fuerte(ids.length, "mensajes")) return; return run(async () => { await borrar(C.TABLA_MENSAJES, ids); SEL.m.clear(); }); }
+  if (t.id === "mDelAll") { const l = S.msg.slice(); if (!l.length) return; if (!fuerte(Math.max(l.length, 2), "mensajes (de TODOS los chats)")) return; return run(async () => { await borrar(C.TABLA_MENSAJES, l.map(m => m.id)); SEL.m.clear(); }); }
+  if (t.id === "chClr") { const l = S.msg.filter(m => (m.canal || "general") === S.canal); if (!l.length) return; if (!fuerte(Math.max(l.length, 2), "mensajes")) return; return run(() => borrar(C.TABLA_MENSAJES, l.map(m => m.id))); }
+});
 $("#ab").onclick = async e => { const id = e.target.dataset.d; if (!id || !confirm("¿Descartar esta alerta?")) return; const { error } = await sb.from(C.TABLA_ALERTAS).update({ estado: "descartada" }).eq("id", id); if (error) alert(error.message); else loadAll(); };
 
 /* ---------- chat ---------- */
@@ -416,12 +474,12 @@ function canales() {
 function paintChs() { const cs = canales(); let tot = 0; $("#chs").innerHTML = [...cs].map(([k, v]) => { if (k !== S.canal || S.tab !== "chat") tot += v.u; return `<div class="ch ${k === S.canal ? "on" : ""}" data-c="${esc(k)}"><b>${esc(v.n)}</b>${v.sos ? ` ${tag("sos", "SOS")}` : ""}${v.u && !(k === S.canal && S.tab === "chat") ? ` <span class="bd">${v.u}</span>` : ""}<small>${v.last ? esc((v.last.autor_nombre || "") + ": " + (v.last.texto || (v.last.tipo === "ubicacion" ? "Ubicación compartida" : ""))) : "Sin mensajes"}</small></div>`; }).join(""); $("#bCh").textContent = tot; $("#bCh").classList.toggle("hide", !tot); }
 $("#chs").onclick = e => { const c = e.target.closest("[data-c]"); if (!c) return; S.canal = c.dataset.c; markSeen(); paintChs(); paintChat(); };
 function markSeen() { S.seen[S.canal] = new Date().toISOString(); }
-function paintChat() {
+function paintChat(force) {
   const cs = canales(); $("#chT").textContent = (cs.get(S.canal) || { n: nombreCanal(S.canal) }).n;
-  const ms = S.msg.filter(m => (m.canal || "general") === S.canal); $("#chS").textContent = `${ms.length} mensajes`;
+  const ms = S.msg.filter(m => (m.canal || "general") === S.canal); $("#chS").innerHTML = `${ms.length} mensajes` + (isCoord() && ms.length ? ` · <button class="btn s" id="mAll">Seleccionar todos</button> <button class="btn r s" id="mDelSel">Eliminar seleccionados (${[...SEL.m].filter(i => ms.some(m => m.id === i)).length})</button> <button class="btn r s" id="chClr">Vaciar este canal</button> <button class="btn r s" id="mDelAll">Borrar TODOS los chats</button>` : "");
   const box = $("#cm"), bottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80, sig = ms.map(m => m.id).join();
-  if (box.dataset.sig === sig + S.canal) return; box.dataset.sig = sig + S.canal;
-  box.innerHTML = ms.map(m => `<div class="m ${m.autor_id === S.user.id ? "me" : ""} ${m.tipo === "sos" ? "sos" : ""}"><small><b>${esc(m.autor_nombre || "—")}</b> · ${fmt(m.created_at)}</small>${m.tipo === "sos" ? tag("sos", "SOS") + " " : ""}${esc(m.texto || "")}${m.lat != null ? ` <a target="_blank" href="https://www.google.com/maps?q=${m.lat},${m.lon}">📍 ver ubicación</a>` : ""}</div>`).join("") || '<small style="color:var(--mut)">Aún no hay mensajes en este canal</small>';
+  if (!force && box.dataset.sig === sig + S.canal) return; box.dataset.sig = sig + S.canal;
+  box.innerHTML = ms.map(m => `<div class="m ${m.autor_id === S.user.id ? "me" : ""} ${m.tipo === "sos" ? "sos" : ""}">${isCoord() ? `<input type="checkbox" data-ms="${m.id}" ${SEL.m.has(m.id) ? "checked" : ""} style="float:left;margin:2px 8px 0 0">` : ""}<small><b>${esc(m.autor_nombre || "—")}</b> · ${fmt(m.created_at)}</small>${m.tipo === "sos" ? tag("sos", "SOS") + " " : ""}${esc(m.texto || "")}${isCoord() ? ` <button class="btn r s" data-md="${m.id}" title="Eliminar mensaje" style="float:right;margin-left:8px">×</button>` : ""}${m.lat != null ? ` <a target="_blank" href="https://www.google.com/maps?q=${m.lat},${m.lon}">📍 ver ubicación</a>` : ""}</div>`).join("") || '<small style="color:var(--mut)">Aún no hay mensajes en este canal</small>';
   if (bottom || box.dataset.first !== S.canal) { box.scrollTop = box.scrollHeight; box.dataset.first = S.canal; }
   if (S.tab === "chat") markSeen();
 }
@@ -436,7 +494,7 @@ function paintEq() {
 
 /* ---------- informe ---------- */
 function paintInf() {
-  const rep = fRep(), c = charts(rep), k = kpis(), per = dias() ? `últimos ${dias()} días` : "todo el período", m = $("#fMun").value, o = $("#fOri").value;
+  const rep = fRep(), c = charts(rep), k = kpis(), per = perTxt(), m = $("#fMun").value, o = $("#fOri").value;
   const rows = rep.slice().sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
   $("#inf").innerHTML = `<div class="rephead"><div class="brand" style="border:0"><div class="esc">G</div><b>Gobernación<br>de Caldas</b></div><div><h2>Informe de incendios reportados en campo</h2><div class="meta">Período: ${per} · Municipio: ${esc(m || "todos")} · Origen: ${o === "app" ? "App de guardabosques" : o === "qfield" ? "QField" : "App y QField"} · Generado el ${fmt(Date.now())} por ${esc(S.nombre)}</div></div></div>
   <div class="kpis">${k.slice(0, 4).map(x => `<div class="kpi" style="--c:${x[2]}"><span>${x[0]}</span><b>${x[1]}</b></div>`).join("")}</div>
