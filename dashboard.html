@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Operaciones de campo — Incendios Caldas</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--ink:#1f2937;--mut:#6b7280;--line:#e5e7eb;--bg:#f5f7fa;--card:#fff;--pri:#0b5cab;--pri2:#e8f1fb;--red:#c62828;--amb:#d97706;--grn:#2e7d32}
+*{box-sizing:border-box}body{margin:0;font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+header{background:#fff;border-bottom:1px solid var(--line);padding:10px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:20}
+header h1{font-size:17px;margin:0}header small{color:var(--mut);display:block;font-size:12px}
+.brand{font-weight:700;color:var(--pri);border-right:1px solid var(--line);padding-right:14px;font-size:13px;line-height:1.2}
+nav{display:flex;gap:4px;margin-left:12px;flex-wrap:wrap}nav button{border:0;background:none;padding:8px 14px;border-radius:6px;font:inherit;cursor:pointer;color:var(--mut);position:relative}
+nav button.on{background:var(--pri2);color:var(--pri);font-weight:600}nav .bd{background:var(--red);color:#fff;border-radius:9px;font-size:11px;padding:1px 6px;margin-left:5px}
+.sp{flex:1}.who{font-size:12px;color:var(--mut);text-align:right}
+main{padding:18px 20px;max-width:1500px;margin:auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px}.kpi b{font-size:26px;display:block}.kpi span{color:var(--mut);font-size:12px}
+.kpi.al b{color:var(--red)}
+.grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px}@media(max-width:980px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:14px}.card h3{margin:0 0 10px;font-size:14px}
+#map{height:430px;border-radius:6px;z-index:0}
+table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;color:var(--mut);font-weight:600;border-bottom:1px solid var(--line);padding:7px 6px;position:sticky;top:0;background:#fff}td{padding:7px 6px;border-bottom:1px solid #f0f2f5;vertical-align:top}
+tr:hover td{background:#fafcff}.tw{max-height:560px;overflow:auto}
+.tag{display:inline-block;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:600}.t-activo,.t-alta,.t-nueva,.t-sos{background:#fde8e8;color:var(--red)}.t-controlado,.t-media,.t-asignada,.t-en_camino,.t-pendiente{background:#fff3e0;color:var(--amb)}.t-extinguido,.t-baja,.t-validado,.t-verificada{background:#e6f4ea;color:var(--grn)}.t-rechazado,.t-descartada{background:#eee;color:#555}
+button.b,select,input,textarea{font:inherit}button.b{border:1px solid var(--pri);background:#fff;color:var(--pri);border-radius:6px;padding:4px 10px;cursor:pointer;margin:1px}button.b.p{background:var(--pri);color:#fff}button.b.r{border-color:var(--red);color:var(--red)}
+select,input,textarea{border:1px solid #cbd5e1;border-radius:6px;padding:6px 8px}
+.bar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.chat{display:grid;grid-template-columns:260px 1fr;gap:14px;height:calc(100vh - 150px);min-height:420px}@media(max-width:800px){.chat{grid-template-columns:1fr;height:auto}}
+.chs{background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:auto}.ch{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer}.ch.on{background:var(--pri2)}.ch small{color:var(--mut);display:block}
+.cp{background:var(--card);border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;min-height:0}.cm{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:240px}
+.m{max-width:75%;background:#f1f5f9;border-radius:10px;padding:7px 10px}.m.me{align-self:flex-end;background:var(--pri2)}.m.sos{background:#fde8e8;border:1px solid var(--red)}.m small{color:var(--mut);display:block;font-size:11px}
+.cf{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}.cf input{flex:1}
+#login{max-width:340px;margin:12vh auto;background:#fff;border:1px solid var(--line);border-radius:10px;padding:22px}#login input{width:100%;margin:6px 0}#login .b{width:100%;padding:9px}
+.bars div{display:flex;align-items:center;gap:8px;margin:4px 0}.bars i{display:block;height:14px;background:var(--pri);border-radius:3px}.bars span{width:110px;color:var(--mut);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+footer{color:var(--mut);font-size:12px;text-align:center;padding:16px}
+.hide{display:none!important}.err{color:var(--red);font-size:13px}
+@media print{header nav,header .sp,.bar,button,.cf,footer .no{display:none!important}header{position:static}}
+</style>
+</head>
+<body>
+<div id="login" class="hide">
+  <div class="brand" style="border:0;font-size:15px">Gobernación de Caldas</div>
+  <h2 style="margin:6px 0 2px">Operaciones de campo</h2><small style="color:var(--mut)">Incendios y guardabosques · acceso del equipo</small>
+  <input id="em" type="email" placeholder="Correo"><input id="pw" type="password" placeholder="Contraseña">
+  <button class="b p" id="go">Entrar</button><div class="err" id="le"></div>
+</div>
+
+<div id="app" class="hide">
+<header>
+  <div class="brand">Gobernación<br>de Caldas</div>
+  <div><h1>Operaciones de campo · Incendios</h1><small>Panel vinculado a la app Incendios Caldas</small></div>
+  <nav id="nav">
+    <button data-t="resumen" class="on">Resumen</button><button data-t="reportes">Reportes</button>
+    <button data-t="alertas">Alertas <span class="bd hide" id="bAl"></span></button>
+    <button data-t="chat">Chat <span class="bd hide" id="bCh"></span></button><button data-t="equipo">Equipo</button>
+  </nav>
+  <div class="sp"></div>
+  <div class="who"><span id="who"></span><br><a href="#" id="out">Salir</a> · <a href="./" target="_blank">Abrir la app</a></div>
+</header>
+<main>
+  <section id="t-resumen">
+    <div class="kpis" id="kpis"></div>
+    <div class="grid"><div class="card"><h3>Mapa en vivo</h3><div class="bar" id="mapf"></div><div id="map"></div></div>
+    <div><div class="card"><h3>Reportes por municipio</h3><div class="bars" id="gMun"></div></div><div class="card"><h3>Reportes últimos 14 días</h3><div class="bars" id="gDia"></div></div></div></div>
+  </section>
+  <section id="t-reportes" class="hide"><div class="card">
+    <div class="bar"><select id="rEst"><option value="">Todos los estados</option><option>activo</option><option>controlado</option><option>extinguido</option></select>
+    <select id="rVal"><option value="">Todas las validaciones</option><option value="pendiente">Por validar</option><option value="validado">Validados</option><option value="rechazado">Rechazados</option></select>
+    <input id="rQ" placeholder="Buscar municipio, vereda, reportante"><button class="b" id="csv">Descargar CSV</button><button class="b" onclick="print()">PDF / Imprimir</button></div>
+    <div class="tw"><table><thead><tr><th>Fecha</th><th>Municipio / vereda</th><th>Cobertura</th><th>Área ha</th><th>Estado</th><th>Validación</th><th>Reportante</th><th>Acciones</th></tr></thead><tbody id="rb"></tbody></table></div></div></section>
+  <section id="t-alertas" class="hide"><div class="card">
+    <div class="bar"><select id="aEst"><option value="abiertas">Abiertas</option><option value="">Todas</option><option>nueva</option><option>asignada</option><option>en_camino</option><option>verificada</option><option>descartada</option></select></div>
+    <div class="tw"><table><thead><tr><th>Fecha</th><th>Fuente</th><th>Alerta</th><th>Municipio</th><th>Prioridad</th><th>Estado</th><th>Asignada a</th><th>Acciones</th></tr></thead><tbody id="ab"></tbody></table></div></div></section>
+  <section id="t-chat" class="hide"><div class="chat"><div class="chs" id="chs"></div>
+    <div class="cp"><div class="bar" style="padding:10px 12px;margin:0;border-bottom:1px solid var(--line)"><b id="chT">General</b></div><div class="cm" id="cm"></div>
+    <div class="cf"><input id="cin" placeholder="Escribe un mensaje al equipo…"><button class="b p" id="csend">Enviar</button></div></div></div></section>
+  <section id="t-equipo" class="hide"><div class="grid"><div class="card"><h3>Guardabosques en campo (última posición)</h3><div class="tw"><table><thead><tr><th>Nombre</th><th>Última señal</th><th>Ubicación</th></tr></thead><tbody id="pb"></tbody></table></div></div>
+    <div class="card"><h3>Novedades de ronda</h3><div class="tw" id="nv"></div></div></div></section>
+</main>
+<footer>Fuente de datos: reportes de campo (app Incendios Caldas), NASA FIRMS, IDEAM y capas de Corpocaldas · Gobernación de Caldas</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+"use strict";
+const C = window.APP_CONFIG, $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = d => d ? new Date(d).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" }) : "—";
+const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
+const uid = () => crypto.randomUUID();
+const sb = window.supabase.createClient(C.SUPABASE_URL, C.SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
+const S = { user: null, rol: "", nombre: "", rep: [], al: [], msg: [], pos: [], nov: [], perf: [], canal: "general", seen: {}, tab: "resumen" };
+const tag = (c, t) => `<span class="tag t-${esc(c)}">${esc(t ?? c)}</span>`;
+const REP = r => ({ id: r.id, fecha: r.fecha_hora, lat: r.lat, lon: r.lon, municipio: r.municipio, vereda: r.vereda, cobertura: r.cobertura, area: r.area_ha, estado: String(r.estado || "").toLowerCase(), val: r.rechazado ? "rechazado" : r.validado ? "validado" : "pendiente", por: r.reportante, causa: r.causa_probable, obs: r.observaciones, origen: r.origen });
+const isTec = () => ["tecnico", "coordinador", "planeacion"].includes(S.rol);
+
+/* ---------- acceso ---------- */
+async function boot() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { $("#login").classList.remove("hide"); $("#app").classList.add("hide"); return; }
+  S.user = session.user;
+  const { data } = await sb.from(C.TABLA_PERFILES).select("*").eq("user_id", S.user.id).maybeSingle();
+  S.rol = (data && data.rol) || "ciudadano"; S.nombre = (data && data.nombre) || (S.user.email || "").split("@")[0];
+  if (!isTec()) { await sb.auth.signOut(); $("#le").textContent = "Este panel es para Planeación, técnicos y coordinación."; $("#login").classList.remove("hide"); $("#app").classList.add("hide"); return; }
+  $("#login").classList.add("hide"); $("#app").classList.remove("hide"); $("#who").textContent = `${S.nombre} · ${cap(S.rol)}`;
+  initMap(); await loadAll(); paintAll(); subscribe(); setInterval(loadAll, 60000);
+}
+$("#go").onclick = async () => { $("#le").textContent = ""; const { error } = await sb.auth.signInWithPassword({ email: $("#em").value.trim(), password: $("#pw").value }); if (error) $("#le").textContent = error.message; else boot(); };
+$("#pw").onkeydown = e => { if (e.key === "Enter") $("#go").click(); };
+$("#out").onclick = async e => { e.preventDefault(); await sb.auth.signOut(); location.reload(); };
+
+/* ---------- datos ---------- */
+async function q(t, order, lim = 1000) { let r = sb.from(t).select("*").limit(lim); if (order) r = r.order(order, { ascending: false }); const { data, error } = await r; if (error) { console.warn(t, error.message); return []; } return data; }
+async function loadAll() {
+  const [r, a, m, p, n, pf] = await Promise.all([q(C.TABLA_REPORTES, "fecha_hora"), q(C.TABLA_ALERTAS, "created_at"), q(C.TABLA_MENSAJES, "created_at", 1500), q(C.TABLA_POSICIONES, "updated_at"), q(C.TABLA_NOVEDADES, "created_at", 200), q(C.TABLA_PERFILES, null, 300)]);
+  S.rep = r.map(REP); S.al = a; S.msg = m.reverse(); S.pos = p; S.nov = n; S.perf = pf; paintAll();
+}
+function subscribe() { let t; sb.channel("dash").on("postgres_changes", { event: "*", schema: "public" }, () => { clearTimeout(t); t = setTimeout(loadAll, 700); }).subscribe(); }
+
+/* ---------- navegación ---------- */
+$("#nav").onclick = e => { const b = e.target.closest("[data-t]"); if (!b) return; S.tab = b.dataset.t; $$("#nav button").forEach(x => x.classList.toggle("on", x === b)); $$("main section").forEach(s => s.classList.toggle("hide", s.id !== "t-" + S.tab)); if (S.tab === "resumen") setTimeout(() => map.invalidateSize(), 50); if (S.tab === "chat") { markSeen(); paintChat(); } };
+const abiertas = a => ["nueva", "asignada", "en_camino"].includes(a.estado);
+function paintAll() { paintKpis(); paintMap(); paintGraf(); paintRep(); paintAl(); paintChs(); paintChat(); paintEq(); }
+
+/* ---------- resumen ---------- */
+function paintKpis() {
+  const act = S.rep.filter(r => r.estado === "activo" && r.val !== "rechazado").length, pen = S.rep.filter(r => r.val === "pendiente").length;
+  const al = S.al.filter(abiertas).length, enc = S.pos.filter(p => Date.now() - new Date(p.updated_at) < 3600e3).length;
+  const sos = S.msg.filter(m => m.tipo === "sos" && Date.now() - new Date(m.created_at) < 24 * 3600e3).length;
+  const ha = S.rep.filter(r => r.val === "validado").reduce((s, r) => s + (+r.area || 0), 0);
+  $("#kpis").innerHTML = [["Incendios activos", act, act ? "al" : ""], ["Por validar", pen, pen ? "al" : ""], ["Alertas abiertas", al, al ? "al" : ""], ["Guardabosques en campo (1 h)", enc, ""], ["SOS (24 h)", sos, sos ? "al" : ""], ["Área validada (ha)", ha.toFixed(1), ""]].map(k => `<div class="kpi ${k[2]}"><b>${k[1]}</b><span>${k[0]}</span></div>`).join("");
+  $("#bAl").textContent = al; $("#bAl").classList.toggle("hide", !al);
+}
+function paintGraf() {
+  const c = {}; S.rep.filter(r => r.val !== "rechazado").forEach(r => c[r.municipio || "Sin dato"] = (c[r.municipio || "Sin dato"] || 0) + 1);
+  const top = Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 8), mx = Math.max(1, ...top.map(x => x[1]));
+  $("#gMun").innerHTML = top.length ? top.map(([k, v]) => `<div><span>${esc(k)}</span><i style="width:${v / mx * 70}%"></i><b>${v}</b></div>`).join("") : "<small>Sin datos</small>";
+  const dias = []; for (let i = 13; i >= 0; i--) { const d = new Date(Date.now() - i * 864e5); dias.push([d.toISOString().slice(0, 10), d.toLocaleDateString("es-CO", { day: "2-digit", month: "short" }), 0]); }
+  S.rep.forEach(r => { const k = (r.fecha || "").slice(0, 10), x = dias.find(d => d[0] === k); if (x) x[2]++; });
+  const m2 = Math.max(1, ...dias.map(d => d[2])); $("#gDia").innerHTML = dias.map(d => `<div><span>${d[1]}</span><i style="width:${d[2] / m2 * 70}%"></i><b>${d[2]}</b></div>`).join("");
+}
+let map, lyr = {};
+function initMap() {
+  map = L.map("map", { center: C.MAPA_CENTRO, zoom: C.MAPA_ZOOM });
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Esri, Maxar" }).addTo(map);
+  ["rep", "al", "eq"].forEach(k => lyr[k] = L.layerGroup().addTo(map));
+  $("#mapf").innerHTML = [["rep", "Incendios"], ["al", "Alertas"], ["eq", "Equipo"]].map(([k, n]) => `<label><input type="checkbox" checked data-l="${k}"> ${n}</label>`).join(" ");
+  $("#mapf").onchange = e => { const k = e.target.dataset.l; e.target.checked ? lyr[k].addTo(map) : map.removeLayer(lyr[k]); };
+}
+const dot = (c, t) => L.divIcon({ className: "", html: `<div style="background:${c};color:#fff;border:2px solid #fff;border-radius:50%;width:22px;height:22px;text-align:center;font-size:12px;line-height:18px;box-shadow:0 1px 4px #0006">${t}</div>`, iconSize: [22, 22] });
+function paintMap() {
+  if (!map) return; Object.values(lyr).forEach(l => l.clearLayers());
+  S.rep.filter(r => r.lat != null && r.val !== "rechazado").forEach(r => L.marker([r.lat, r.lon], { icon: dot(r.estado === "activo" ? "#c62828" : r.estado === "controlado" ? "#d97706" : "#2e7d32", "🔥") }).bindPopup(`<b>${esc(r.municipio || "")}</b> ${esc(r.vereda || "")}<br>${tag(r.estado)} ${tag(r.val)}<br>${fmt(r.fecha)}`).addTo(lyr.rep));
+  S.al.filter(a => abiertas(a) && a.lat != null).forEach(a => L.marker([a.lat, a.lon], { icon: dot("#d97706", "!") }).bindPopup(`<b>${esc(a.titulo)}</b><br>${tag(a.estado)} ${fmt(a.created_at)}`).addTo(lyr.al));
+  S.pos.forEach(p => L.marker([p.lat, p.lon], { icon: dot("#0b5cab", "●") }).bindTooltip(`${esc(p.nombre || "Guardabosque")} · ${fmt(p.updated_at)}`).addTo(lyr.eq));
+}
+
+/* ---------- reportes ---------- */
+["rEst", "rVal", "rQ"].forEach(i => $("#" + i).oninput = paintRep);
+function repFilt() { const e = $("#rEst").value, v = $("#rVal").value, t = $("#rQ").value.toLowerCase(); return S.rep.filter(r => (!e || r.estado === e) && (!v || r.val === v) && (!t || [r.municipio, r.vereda, r.por, r.cobertura].join(" ").toLowerCase().includes(t))); }
+function paintRep() {
+  $("#rb").innerHTML = repFilt().map(r => `<tr><td>${fmt(r.fecha)}</td><td><b>${esc(r.municipio || "")}</b><br><small>${esc(r.vereda || "")}</small></td><td>${esc(r.cobertura || "")}</td><td>${r.area ?? ""}</td><td>${isTec() ? `<select data-e="${r.id}">${["activo", "controlado", "extinguido"].map(x => `<option ${x === r.estado ? "selected" : ""}>${x}</option>`).join("")}</select>` : tag(r.estado)}</td><td>${tag(r.val, { pendiente: "por validar" }[r.val] || r.val)}</td><td>${esc(r.por || "")}</td><td>${r.val !== "validado" ? `<button class="b p" data-v="${r.id}:validado">Validar</button>` : ""}${r.val !== "rechazado" ? `<button class="b r" data-v="${r.id}:rechazado">Rechazar</button>` : ""}</td></tr>`).join("") || '<tr><td colspan="8">Sin reportes</td></tr>';
+}
+$("#rb").onclick = async e => { const b = e.target.closest("[data-v]"); if (!b) return; const [id, v] = b.dataset.v.split(":"); const { error } = await sb.from(C.TABLA_REPORTES).update({ validado: v === "validado", rechazado: v === "rechazado" }).eq("id", id); if (error) alert(error.message); else loadAll(); };
+$("#rb").onchange = async e => { const id = e.target.dataset.e; if (!id) return; const { error } = await sb.from(C.TABLA_REPORTES).update({ estado: cap(e.target.value) }).eq("id", id); if (error) alert(error.message); else loadAll(); };
+$("#csv").onclick = () => { const rows = [["fecha", "municipio", "vereda", "cobertura", "area_ha", "estado", "validacion", "reportante", "lat", "lon"], ...repFilt().map(r => [r.fecha, r.municipio, r.vereda, r.cobertura, r.area, r.estado, r.val, r.por, r.lat, r.lon])]; const t = rows.map(r => r.map(x => `"${String(x ?? "").replace(/"/g, '""')}"`).join(",")).join("\n"); const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + t], { type: "text/csv" })); a.download = "reportes_incendios.csv"; a.click(); };
+
+/* ---------- alertas ---------- */
+$("#aEst").oninput = paintAl;
+function paintAl() {
+  const f = $("#aEst").value, rows = S.al.filter(a => !f || (f === "abiertas" ? abiertas(a) : a.estado === f));
+  const staff = S.perf.filter(p => ["guardabosque", "tecnico", "coordinador", "planeacion"].includes(p.rol));
+  $("#ab").innerHTML = rows.map(a => `<tr><td>${fmt(a.created_at)}</td><td>${esc(a.fuente)}</td><td><b>${esc(a.titulo)}</b><br><small>${esc(a.descripcion || "")}</small></td><td>${esc(a.municipio || "")}</td><td>${tag(a.prioridad)}</td><td>${tag(a.estado)}</td>
+  <td>${abiertas(a) ? `<select data-as="${a.id}"><option value="">Asignar a…</option>${staff.map(p => `<option value="${p.user_id}|${esc(p.nombre || p.rol)}" ${p.user_id === a.asignado_a ? "selected" : ""}>${esc(p.nombre || p.rol)} (${esc(p.rol)})</option>`).join("")}</select>` : esc(a.asignado_nombre || "")}</td>
+  <td>${abiertas(a) ? `<button class="b r" data-d="${a.id}">Descartar</button>` : ""}</td></tr>`).join("") || '<tr><td colspan="8">Sin alertas</td></tr>';
+}
+$("#ab").onchange = async e => { const id = e.target.dataset.as; if (!id || !e.target.value) return; const [uid2, nom] = e.target.value.split("|"); const { error } = await sb.from(C.TABLA_ALERTAS).update({ asignado_a: uid2, asignado_nombre: nom, estado: "asignada" }).eq("id", id); if (error) alert(error.message); else loadAll(); };
+$("#ab").onclick = async e => { const id = e.target.dataset.d; if (!id || !confirm("¿Descartar esta alerta?")) return; const { error } = await sb.from(C.TABLA_ALERTAS).update({ estado: "descartada" }).eq("id", id); if (error) alert(error.message); else loadAll(); };
+
+/* ---------- chat ---------- */
+function canales() {
+  const m = new Map([["general", { n: "General del equipo", last: null, u: 0 }]]);
+  S.msg.forEach(x => { const c = x.canal || "general"; if (!m.has(c)) { const r = c.startsWith("inc:") ? S.rep.find(y => y.id === c.slice(4)) : null; m.set(c, { n: r ? `Incendio · ${r.municipio || ""} ${r.vereda || ""}` : c, last: null, u: 0 }); } const o = m.get(c); o.last = x; if (new Date(x.created_at) > new Date(S.seen[c] || 0) && x.autor_id !== S.user.id) o.u++; });
+  return m;
+}
+function paintChs() { const cs = canales(); let tot = 0; $("#chs").innerHTML = [...cs].map(([k, v]) => { tot += v.u; return `<div class="ch ${k === S.canal ? "on" : ""}" data-c="${esc(k)}"><b>${esc(v.n)}</b>${v.u ? ` <span class="bd" style="background:var(--red);color:#fff;border-radius:9px;padding:0 6px">${v.u}</span>` : ""}<small>${v.last ? esc((v.last.autor_nombre || "") + ": " + (v.last.texto || "")).slice(0, 60) : "Sin mensajes"}</small></div>`; }).join(""); $("#bCh").textContent = tot; $("#bCh").classList.toggle("hide", !tot); }
+$("#chs").onclick = e => { const c = e.target.closest("[data-c]"); if (!c) return; S.canal = c.dataset.c; markSeen(); paintChs(); paintChat(); };
+function markSeen() { S.seen[S.canal] = new Date().toISOString(); }
+function paintChat() {
+  const cs = canales(); $("#chT").textContent = (cs.get(S.canal) || { n: S.canal }).n;
+  const ms = S.msg.filter(m => (m.canal || "general") === S.canal), box = $("#cm"), bottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+  box.innerHTML = ms.map(m => `<div class="m ${m.autor_id === S.user.id ? "me" : ""} ${m.tipo === "sos" ? "sos" : ""}"><b>${esc(m.autor_nombre || "—")}</b>${m.tipo === "sos" ? " " + tag("sos", "SOS") : ""}<div>${esc(m.texto || "")}</div>${m.lat != null ? `<a target="_blank" href="https://www.google.com/maps?q=${m.lat},${m.lon}">Ver ubicación</a>` : ""}<small>${fmt(m.created_at)}</small></div>`).join("") || "<small>Aún no hay mensajes en este canal</small>";
+  if (bottom) box.scrollTop = box.scrollHeight; if (S.tab === "chat") markSeen();
+}
+async function send() { const t = $("#cin").value.trim(); if (!t) return; $("#cin").value = ""; const m = { id: uid(), canal: S.canal, autor_id: S.user.id, autor_nombre: S.nombre + " (coordinación)", tipo: "texto", texto: t, created_at: new Date().toISOString() }; S.msg.push(m); paintChs(); paintChat(); const { error } = await sb.from(C.TABLA_MENSAJES).insert(m); if (error) { alert(error.message); loadAll(); } }
+$("#csend").onclick = send; $("#cin").onkeydown = e => { if (e.key === "Enter") send(); };
+
+/* ---------- equipo ---------- */
+function paintEq() {
+  $("#pb").innerHTML = S.pos.map(p => `<tr><td><b>${esc(p.nombre || "—")}</b></td><td>${fmt(p.updated_at)}${Date.now() - new Date(p.updated_at) < 3600e3 ? " " + tag("verificada", "en línea") : ""}</td><td><a target="_blank" href="https://www.google.com/maps?q=${p.lat},${p.lon}">${(+p.lat).toFixed(4)}, ${(+p.lon).toFixed(4)}</a></td></tr>`).join("") || '<tr><td colspan="3">Nadie ha compartido ubicación</td></tr>';
+  $("#nv").innerHTML = S.nov.map(n => `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><b>${esc(n.tipo)}</b> ${tag(n.prioridad)}<br><small>${esc(n.autor_nombre || "")} · ${fmt(n.created_at)}</small><div>${esc(n.descripcion || "")}</div></div>`).join("") || "<small>Sin novedades</small>";
+}
+boot();
+</script>
+</body>
+</html>
