@@ -209,6 +209,7 @@ table.attr td:first-child{color:var(--mute);width:38%;padding-right:8px}
         <button id="msgSend" aria-label="Enviar"><svg class="i" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
       </div>
     </div>
+    <div class="page" id="p-gestion"><div class="ph"><h2>Gestión de datos</h2></div><div class="pb" id="gsBody"></div></div>
     <div class="page" id="p-cuenta"><div class="ph"><h2>Cuenta y sincronización</h2></div><div class="pb" id="acBody"></div></div>
   </div>
 
@@ -260,6 +261,7 @@ const NOV_TIPOS = ["Ronda / recorrido","Foco de incendio detectado","Tala o extr
 const ESTADOS = ["activo", "controlado", "extinguido"];
 const ROLES = { ciudadano: "Ciudadanía", guardabosque: "Guardabosque", tecnico: "Técnico", coordinador: "Coordinador", planeacion: "Planeación", organizaciones: "Organización" };
 const isStaff = () => ["guardabosque", "tecnico", "coordinador", "planeacion"].includes(S.rol);
+const isCoord = () => ["coordinador", "planeacion"].includes(S.rol);
 const isTec = () => ["tecnico", "coordinador", "planeacion"].includes(S.rol);
 
 /* ====================== IndexedDB (cola sin conexión / demo / caché) ====================== */
@@ -292,7 +294,7 @@ const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 const REP = {
   from: r => ({ id: r.id, created_at: r.fecha_hora, lat: r.lat, lon: r.lon, precision_m: r.precision_m, municipio: r.municipio, vereda: r.vereda, cobertura: r.cobertura, area_ha: r.area_ha, causa: r.causa_probable, estado: String(r.estado || "").toLowerCase(), observaciones: r.observaciones, contacto: r.contacto, origen: r.origen, estado_validacion: r.rechazado ? "rechazado" : r.validado ? "validado" : "pendiente", reportado_por: r.reportado_por, reportado_por_nombre: r.reportante, fotos: r.fotos || [] }),
   to: r => ({ id: r.id, fecha_hora: r.created_at, lat: r.lat, lon: r.lon, precision_m: r.precision_m ?? null, municipio: r.municipio, vereda: r.vereda, cobertura: r.cobertura, area_ha: r.area_ha, causa_probable: r.causa, estado: cap(r.estado), observaciones: r.observaciones, contacto: r.contacto ?? null, origen: r.origen || "app", nivel: r.nivel === "tecnico" ? "tecnico" : "ciudadano", validado: r.estado_validacion === "validado", rechazado: r.estado_validacion === "rechazado", reportado_por: r.reportado_por ?? null, reportante: r.reportado_por_nombre ?? null, fotos: r.fotos || [] }),
-  patch: p => { const o = {}; if (p.estado) o.estado = cap(p.estado); if (p.estado_validacion) { o.validado = p.estado_validacion === "validado"; o.rechazado = p.estado_validacion === "rechazado"; } return o; }
+  patch: p => { const o = {}; if (p.estado) o.estado = cap(p.estado); if (p.estado_validacion) { o.validado = p.estado_validacion === "validado"; o.rechazado = p.estado_validacion === "rechazado"; } ["municipio", "vereda", "cobertura", "observaciones", "area_ha"].forEach(k => { if (k in p) o[k] = p[k]; }); if ("causa" in p) o.causa_probable = p.causa; return o; }
 };
 const ADAPT = {
   [C.TABLA_REPORTES]: { order: "fecha_hora", from: REP.from, to: REP.to, patch: REP.patch },
@@ -320,6 +322,11 @@ const DB = {
   async update(tabla, id, patch) {
     if (!ONLINE) { const r = await idb.get("demo", tabla + ":" + id); if (r) { Object.assign(r.row, patch); await idb.put("demo", r); } return; }
     const ad = ADAPT[tabla]; const { error } = await sb.from(tabla).update(ad && ad.patch ? ad.patch(patch) : patch).eq("id", id); if (error) throw error;
+  },
+  async remove(tabla, id) {
+    if (!ONLINE) { await idb.del && idb.del("demo", tabla + ":" + id); return; }
+    const { data, error } = await sb.from(tabla).delete().eq("id", id).select("id"); if (error) throw error;
+    if (!data || !data.length) throw new Error("sin permiso para eliminar");
   },
   async upsertPos(row) {
     if (!ONLINE) { await idb.put("demo", { k: C.TABLA_POSICIONES + ":" + row.user_id, t: C.TABLA_POSICIONES, row }); return; }
@@ -496,16 +503,25 @@ function openReporte(id) {
       ${isStaff() ? `<button class="btn sec" data-chat="${r.id}">${ico("chat")}Chat</button>` : ""}</div>
     ${isTec() ? `<div class="card" style="margin:12px 0 0;box-shadow:none;border:1px solid var(--line)"><h3>Gestión técnica</h3>
       <label class="f" style="margin-top:0">Estado del incendio<select id="dEstado">${ESTADOS.map(e => `<option ${e === r.estado ? "selected" : ""}>${e}</option>`).join("")}</select></label>
+      <div class="row"><label class="f">Municipio<select id="dMun">${MUNICIPIOS.map(m => `<option ${m === r.municipio ? "selected" : ""}>${m}</option>`).join("")}</select></label><label class="f">Vereda<input id="dVer" value="${esc(r.vereda || "")}"></label></div>
+      <div class="row"><label class="f">Área (ha)<input id="dAre" type="number" inputmode="decimal" min="0" step="0.1" value="${esc(r.area_ha ?? "")}"></label><label class="f">Causa<select id="dCau">${CAUSAS.map(m => `<option ${m === r.causa ? "selected" : ""}>${m}</option>`).join("")}</select></label></div>
+      <label class="f">Observaciones<textarea id="dObs">${esc(r.observaciones || "")}</textarea></label>
       <label class="f">Validación<select id="dVal">${["pendiente", "validado", "rechazado"].map(e => `<option ${e === r.estado_validacion ? "selected" : ""}>${e}</option>`).join("")}</select></label>
-      <button class="btn full" style="margin-top:10px" id="dSave">Guardar cambios</button></div>` : ""}`;
+      <button class="btn full" style="margin-top:10px" id="dSave">Guardar cambios</button>
+      ${isCoord() ? `<button class="btn sec full" style="margin-top:8px;color:#b3261e" id="dDel">Eliminar este reporte</button>` : ""}</div>` : ""}`;
   $("#detail").classList.add("show");
   map.panTo([r.lat, r.lon], { animate: true });
 }
 $("#dBody").addEventListener("click", async e => {
   const lb = e.target.closest("[data-lb]"); if (lb) { $("#lightbox img").src = lb.dataset.lb; $("#lightbox").style.display = "flex"; return; }
   const ch = e.target.closest("[data-chat]"); if (ch) { S.canal = "inc:" + ch.dataset.chat; go("mensajes"); return; }
+  if (e.target.id === "dDel") {
+    const b = e.target; if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = "¿Seguro? Se borra para todos. Toca de nuevo"; return; }
+    try { await DB.remove(C.TABLA_REPORTES, detailId); toast("Reporte eliminado"); closeDetail(); await loadReportes(); if (S.tab === "gestion") paintGestion(); } catch (er) { toast("No se pudo eliminar: " + (er.message || er)); }
+    return;
+  }
   if (e.target.id === "dSave") {
-    try { await DB.update(C.TABLA_REPORTES, detailId, { estado: $("#dEstado").value, estado_validacion: $("#dVal").value }); toast("Cambios guardados"); await loadReportes(); openReporte(detailId); }
+    try { await DB.update(C.TABLA_REPORTES, detailId, { estado: $("#dEstado").value, estado_validacion: $("#dVal").value, municipio: $("#dMun").value, vereda: $("#dVer").value.trim() || null, area_ha: $("#dAre").value === "" ? null : +$("#dAre").value, causa: $("#dCau").value, observaciones: $("#dObs").value.trim() || null }); toast("Cambios guardados"); await loadReportes(); openReporte(detailId); }
     catch (er) { toast("No se pudo guardar: " + (er.message || er)); }
   }
 });
@@ -834,6 +850,7 @@ function paintCuenta() {
       <small style="color:var(--mute);display:block;margin-top:8px">Las cuentas nuevas son de ciudadanía. Un coordinador asigna el rol de guardabosque o técnico.</small>` :
     `<label class="f" style="margin-top:0">Nombre<input id="dNom" value="Karen"></label><label class="f">Rol de prueba<select id="dRol">${Object.entries(ROLES).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select></label><button class="btn full" style="margin-top:10px" id="dIn">Entrar en modo demo</button>`}</div>
   <div class="card"><h3>Sincronización</h3><div class="li" style="padding-top:0"><div class="g"><b>${S.cola ? S.cola + " pendiente(s) por enviar" : "Todo enviado"}</b><small>${ONLINE ? (navigator.onLine ? "Conectado a la base de datos" : "Sin señal — se enviará al volver") : "Sin base de datos (demo)"}</small>${S.lastErr ? `<small style="color:#b3261e;display:block;word-break:break-word">Error: ${esc(S.lastErr)}</small>` : ""}</div><button class="btn sec sm" id="aSync">${ico("refresh")}Sincronizar</button></div>${S.cola ? `<div style="padding:4px 0"><button class="btn sec sm" id="aClr">Descartar pendientes</button></div>` : ""}</div>
+  ${isTec() ? `<div class="card"><h3>Coordinación</h3><button class="btn full" data-go="gestion">${ico("alert")}Gestión de datos, alertas e informes</button></div>` : ""}
   <div class="card"><h3>Aplicación</h3>
     ${deferredInstall ? '<button class="btn full" id="aInst">Instalar en este teléfono</button>' : '<small style="color:var(--mute)">Para instalarla: menú ⋮ de Chrome → “Instalar aplicación” (o “Añadir a pantalla de inicio”).</small>'}
     ${"Notification" in window && Notification.permission !== "granted" && isStaff() ? '<button class="btn sec full" style="margin-top:8px" id="aNot">Activar notificaciones de mensajes</button>' : ""}
@@ -841,6 +858,7 @@ function paintCuenta() {
 }
 $("#acBody").addEventListener("click", async e => {
   const id = e.target.id;
+  const bg = e.target.closest("[data-go]"); if (bg) return go(bg.dataset.go);
   if (id === "aIn" || id === "aUp") {
     const email = $("#aMail").value.trim(), password = $("#aPass").value; if (!email || !password) return toast("Escribe correo y contraseña");
     const r = id === "aIn" ? await sb.auth.signInWithPassword({ email, password }) : await sb.auth.signUp({ email, password, options: { data: { nombre: email.split("@")[0] } } });
@@ -921,6 +939,75 @@ async function seedDemo() {
   await idb.put("demo", { k: C.TABLA_POSICIONES + ":" + p.user_id, t: C.TABLA_POSICIONES, row: p });
 }
 
+
+/* ====================== Gestión de datos, alertas e informes (coordinación) ====================== */
+S.gs = { dias: 30, mun: "" };
+const desde = () => S.gs.dias ? Date.now() - S.gs.dias * 864e5 : 0;
+const gRep = () => S.reportes.filter(r => new Date(r.created_at).getTime() >= desde() && (!S.gs.mun || r.municipio === S.gs.mun));
+const gAl = () => S.alertas.filter(a => new Date(a.created_at).getTime() >= desde() && (!S.gs.mun || !a.municipio || a.municipio === S.gs.mun));
+function paintGestion() {
+  const b = $("#gsBody"); if (!isTec()) { b.innerHTML = '<div class="empty"><p><b>Solo para técnicos y coordinación</b></p></div>'; return; }
+  const R = gRep(), A = gAl(), ab = A.filter(abiertas), pend = R.filter(r => r.estado_validacion === "pendiente");
+  const ha = R.reduce((s, r) => s + (+r.area_ha || 0), 0);
+  const k = (n, t, c) => `<div style="flex:1;min-width:30%;background:#fff;border-radius:10px;padding:10px;box-shadow:0 1px 3px rgba(0,0,0,.15)"><b style="font-size:22px;color:${c || "inherit"}">${n}</b><br><small style="color:var(--mute)">${t}</small></div>`;
+  b.innerHTML = `
+  <div class="card"><div class="row"><label class="f" style="margin-top:0">Periodo<select id="gsDias">${[[1, "Hoy"], [7, "7 días"], [30, "30 días"], [365, "Último año"], [0, "Todo"]].map(([v, t]) => `<option value="${v}" ${S.gs.dias === v ? "selected" : ""}>${t}</option>`).join("")}</select></label>
+    <label class="f" style="margin-top:0">Municipio<select id="gsMun"><option value="">Todos</option>${MUNICIPIOS.map(m => `<option ${m === S.gs.mun ? "selected" : ""}>${m}</option>`).join("")}</select></label></div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">${k(R.length, "Reportes")}${k(R.filter(r => r.estado === "activo").length, "Incendios activos", "var(--red)")}${k(pend.length, "Por validar", "#b8860b")}${k(ab.length, "Alertas abiertas", "var(--org)")}${k(ha.toFixed(1), "Hectáreas")}${k(A.length, "Alertas en el periodo")}</div>
+  <div class="card"><h3>Informes</h3>
+    <div class="row"><button class="btn sm" data-g="inf">Ver informe imprimible</button><button class="btn sec sm" data-g="csvR">CSV de reportes</button><button class="btn sec sm" data-g="csvA">CSV de alertas</button></div></div>
+  <div class="card"><h3>Alertas (${A.length})</h3>
+    ${isCoord() ? `<div class="row" style="margin-bottom:8px"><button class="btn sec sm" data-g="reiniciar">Reiniciar abiertas (${ab.length}) → nuevas</button><button class="btn sec sm" data-g="archivar">Archivar sin atender</button></div>` : ""}
+    ${A.slice(0, 40).map(a => `<div class="li"><div class="g"><b>${esc(a.titulo)}</b><small>${fmt(a.created_at)} · ${esc(a.estado)}${a.asignado_nombre ? " · " + esc(a.asignado_nombre) : ""}</small></div>
+      <button class="btn sec sm" data-g="alrei" data-id="${a.id}">Reiniciar</button><button class="btn sec sm" data-g="aldesc" data-id="${a.id}">Descartar</button></div>`).join("") || "<small>Sin alertas</small>"}</div>
+  <div class="card"><h3>Reportes (${R.length})</h3>
+    ${R.slice(0, 60).map(r => `<div class="li"><div class="g"><b>${esc(r.municipio)}${r.vereda ? " · " + esc(r.vereda) : ""}</b><small>${fmt(r.created_at)} · ${esc(r.estado)} · ${esc(r.estado_validacion)}${r.area_ha ? " · " + r.area_ha + " ha" : ""}</small></div>
+      <button class="btn sec sm" data-g="rep" data-id="${r.id}">Editar</button></div>`).join("") || "<small>Sin reportes</small>"}</div>`;
+}
+const csvEsc = v => { v = v == null ? "" : String(v); return /[",\n;]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+async function guardarArchivo(nombre, texto, mime) {
+  const blob = new Blob(["\ufeff" + texto], { type: mime }), file = new File([blob], nombre, { type: mime });
+  try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: nombre }); return; } } catch (e) { if (e && e.name === "AbortError") return; }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nombre; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); toast("Archivo generado: " + nombre);
+}
+function csvReportes() {
+  const h = ["fecha", "municipio", "vereda", "estado", "validacion", "area_ha", "cobertura", "causa", "observaciones", "lat", "lon", "origen", "reportado_por"];
+  return [h.join(",")].concat(gRep().map(r => [r.created_at, r.municipio, r.vereda, r.estado, r.estado_validacion, r.area_ha, r.cobertura, r.causa, r.observaciones, r.lat, r.lon, r.origen, r.reportado_por_nombre].map(csvEsc).join(","))).join("\n");
+}
+function csvAlertas() {
+  const h = ["fecha", "titulo", "estado", "fuente", "municipio", "asignado_a", "lat", "lon"];
+  return [h.join(",")].concat(gAl().map(a => [a.created_at, a.titulo, a.estado, a.fuente, a.municipio, a.asignado_nombre, a.lat, a.lon].map(csvEsc).join(","))).join("\n");
+}
+function informe() {
+  const R = gRep(), A = gAl(), cnt = (arr, f) => { const m = {}; arr.forEach(x => { const k = f(x) || "—"; m[k] = (m[k] || 0) + 1; }); return Object.entries(m).sort((a, b) => b[1] - a[1]); };
+  const tabla = (t, arr) => `<h3 style="margin:14px 0 4px">${t}</h3><table style="width:100%;border-collapse:collapse;font-size:13px">${arr.map(([k, n]) => `<tr><td style="padding:3px 0;border-bottom:1px solid #eee">${esc(k)}</td><td style="text-align:right;border-bottom:1px solid #eee"><b>${n}</b></td></tr>`).join("")}</table>`;
+  const ha = R.reduce((s, r) => s + (+r.area_ha || 0), 0), per = S.gs.dias ? "últimos " + S.gs.dias + " días" : "todo el histórico";
+  let o = $("#informe"); if (!o) { o = document.createElement("div"); o.id = "informe"; document.body.appendChild(o); }
+  o.style.cssText = "position:fixed;inset:0;z-index:5000;background:#fff;overflow:auto;padding:16px;color:#111";
+  o.innerHTML = `<style>@media print{body>*:not(#informe){display:none!important}#informe{position:static!important}.noprt{display:none!important}}</style>
+  <div class="noprt" style="display:flex;gap:8px;margin-bottom:12px"><button class="btn sm" id="infPrint">Imprimir / guardar PDF</button><button class="btn sec sm" id="infX">Cerrar</button></div>
+  <h2 style="margin:0">Informe de incendios · Caldas</h2><div style="color:#555;font-size:13px">Gobernación de Caldas · ${per}${S.gs.mun ? " · " + esc(S.gs.mun) : ""} · generado ${fmt(new Date())}</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0">${[[R.length, "reportes"], [R.filter(r => r.estado === "activo").length, "activos"], [ha.toFixed(1), "hectáreas"], [A.length, "alertas"], [A.filter(a => a.estado === "verificada").length, "verificadas"]].map(([n, t]) => `<div style="border:1px solid #ddd;border-radius:8px;padding:8px 14px"><b style="font-size:20px">${n}</b><br><small>${t}</small></div>`).join("")}</div>
+  ${tabla("Reportes por municipio", cnt(R, r => r.municipio))}${tabla("Reportes por estado", cnt(R, r => r.estado))}${tabla("Reportes por causa", cnt(R, r => r.causa))}${tabla("Reportes por validación", cnt(R, r => r.estado_validacion))}${tabla("Alertas por estado", cnt(A, a => a.estado))}
+  <h3 style="margin:14px 0 4px">Detalle de reportes</h3><table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="text-align:left"><th>Fecha</th><th>Lugar</th><th>Estado</th><th>Valid.</th><th>ha</th></tr>${R.slice(0, 200).map(r => `<tr><td style="border-top:1px solid #eee">${fmt(r.created_at)}</td><td style="border-top:1px solid #eee">${esc(r.municipio)}${r.vereda ? " · " + esc(r.vereda) : ""}</td><td style="border-top:1px solid #eee">${esc(r.estado)}</td><td style="border-top:1px solid #eee">${esc(r.estado_validacion)}</td><td style="border-top:1px solid #eee">${r.area_ha ?? ""}</td></tr>`).join("")}</table>
+  <div style="margin-top:14px;font-size:11px;color:#777">Fuente de datos: app Incendios Caldas (reportes de guardabosques y ciudadanía), alertas y QField · Gobernación de Caldas</div>`;
+  $("#infX").onclick = () => o.remove(); $("#infPrint").onclick = () => window.print();
+}
+$("#gsBody").addEventListener("change", e => { if (e.target.id === "gsDias") { S.gs.dias = +e.target.value; paintGestion(); } if (e.target.id === "gsMun") { S.gs.mun = e.target.value; paintGestion(); } });
+$("#gsBody").addEventListener("click", async e => {
+  const t = e.target.closest("[data-g]"); if (!t) return; const g = t.dataset.g, id = t.dataset.id, sure = () => { if (!t.dataset.sure) { t.dataset.sure = 1; t.textContent = "¿Seguro? Toca de nuevo"; return false; } return true; };
+  const patchAl = async (a, p) => { Object.assign(a, p); await enqueueOp("update", C.TABLA_ALERTAS, a.id, p); };
+  if (g === "inf") return informe();
+  if (g === "csvR") return guardarArchivo("reportes_incendios_" + new Date().toISOString().slice(0, 10) + ".csv", csvReportes(), "text/csv");
+  if (g === "csvA") return guardarArchivo("alertas_" + new Date().toISOString().slice(0, 10) + ".csv", csvAlertas(), "text/csv");
+  if (g === "rep") { go("mapa"); return openReporte(id); }
+  if (g === "alrei") { const a = S.alertas.find(x => x.id === id); await patchAl(a, { estado: "nueva", asignado_a: null, asignado_nombre: null }); toast("Alerta reiniciada"); }
+  else if (g === "aldesc") { const a = S.alertas.find(x => x.id === id); await patchAl(a, { estado: "descartada", notas_verificacion: "Descartada desde Gestión por " + S.nombre }); toast("Alerta descartada"); }
+  else if (g === "reiniciar") { if (!sure()) return; const l = gAl().filter(abiertas); for (const a of l) await patchAl(a, { estado: "nueva", asignado_a: null, asignado_nombre: null }); toast(l.length + " alertas reiniciadas"); }
+  else if (g === "archivar") { if (!sure()) return; const l = gAl().filter(a => a.estado === "nueva"); for (const a of l) await patchAl(a, { estado: "descartada", notas_verificacion: "Archivada desde Gestión por " + S.nombre }); toast(l.length + " alertas archivadas"); }
+  paintBadgeAl(); paintMap(); paintGestion();
+});
+
 /* ====================== Navegación ====================== */
 function go(tab) {
   if (S.picking && tab !== "mapa" && tab !== "reportar" && tab !== "alertas") return;
@@ -929,7 +1016,7 @@ function go(tab) {
   $$(".page").forEach(p => p.classList.toggle("show", p.id === "p-" + tab));
   $("#top").style.display = tab === "mapa" ? "" : "none"; $("#fabs").style.display = tab === "mapa" ? "" : "none";
   if (tab === "reportar") { paintReporte(); if (!S.form.lat && S.fix) { S.form.lat = S.fix.lat; S.form.lon = S.fix.lon; S.form.acc = S.fix.acc; paintGpsBox(); } startGPS(false); }
-  if (tab === "alertas") paintAlertas(); if (tab === "equipo") paintEquipo(); if (tab === "mensajes") { paintChat(); } if (tab === "cuenta") paintCuenta();
+  if (tab === "alertas") paintAlertas(); if (tab === "equipo") paintEquipo(); if (tab === "mensajes") { paintChat(); } if (tab === "cuenta") paintCuenta(); if (tab === "gestion") paintGestion();
   if (tab === "mapa") setTimeout(() => map.invalidateSize(), 50);
 }
 $("#nav").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) { if (S.picking) { $("#pick").classList.remove("show"); S.picking = false; } go(b.dataset.tab); } });
