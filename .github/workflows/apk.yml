@@ -1,5 +1,6 @@
 name: Construir APK Android
 
+
 on:
   workflow_dispatch:
   push:
@@ -10,20 +11,27 @@ on:
       - "manifest.webmanifest"
       - ".github/workflows/apk.yml"
 
+
+permissions:
+  contents: write
+
 jobs:
   apk:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
+
 
       - name: Preparar la app web con las librerias incluidas (funciona sin internet)
         run: |
@@ -34,24 +42,11 @@ jobs:
           cp node_modules/leaflet/dist/leaflet.js node_modules/leaflet/dist/leaflet.css www/vendor/
           cp -r node_modules/leaflet/dist/images www/vendor/images
           cp node_modules/@supabase/supabase-js/dist/umd/supabase.js www/vendor/
-          sed -i 's#https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/#vendor/#g; s#https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/#vendor/#g' www/index.html
-          grep -n "vendor/" www/index.html | head
 
-      - name: Crear proyecto Android
+      - name: Publicar APK para descarga directa
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          npm i @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7
-          echo '{"appId":"org.fcvcol.incendioscaldas","appName":"Incendios Caldas","webDir":"www","android":{"allowMixedContent":false}}' > capacitor.config.json
-          npx cap add android
-          sed -i 's#<application#<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/><uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/><uses-permission android:name="android.permission.CAMERA"/><application#' android/app/src/main/AndroidManifest.xml
-          npx cap sync android
-
-      - name: Compilar APK
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Incendios-Caldas-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk Incendios-Caldas.apk
+          gh release delete apk-latest --cleanup-tag -y || true
+          gh release create apk-latest Incendios-Caldas.apk --title "Incendios Caldas (APK Android)" --notes "Descarga Incendios-Caldas.apk, abrelo en el celular e instala."
