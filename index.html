@@ -372,7 +372,7 @@ async function flush(manual) {
       try {
         const op = it.op || "insert"; const row = { ...it.row }; const urls = [];
         for (let i = 0; i < (it.fotos || []).length; i++) urls.push(await withTO(DB.uploadFoto(`${it.k}/${i + 1}.jpg`, it.fotos[i]), 60000, "foto"));
-        if (op === "insert") { if (urls.length) row.fotos = urls; else if (!row.fotos) row.fotos = []; await withTO(DB.insert(it.tabla, row), 30000, "envío"); }
+        if (op === "insert") { if (urls.length) row.fotos = urls; else if (!row.fotos && it.tabla !== C.TABLA_MENSAJES) row.fotos = []; await withTO(DB.insert(it.tabla, row), 30000, "envío"); }
         else if (op === "update") { await withTO(DB.update(it.tabla, it.id, row), 30000, "envío"); }
         else if (op === "rpc") { if (urls.length) row.args.p_fotos = urls; await withTO(DB.rpc(row.fn, row.args), 30000, "envío"); }
         await idb.del("cola", it.k);
