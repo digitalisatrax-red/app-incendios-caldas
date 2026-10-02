@@ -77,6 +77,14 @@ td{padding:9px 10px;border-bottom:1px solid #f1f3f6;vertical-align:top}tbody tr:
 #login{max-width:360px;margin:12vh auto;background:#fff;border:1px solid var(--line);border-radius:12px;padding:26px}#login input{width:100%;margin:6px 0;padding:9px}#login .btn{width:100%;padding:10px}
 .err{color:var(--red);font-size:13px;margin-top:6px}
 footer{color:var(--mut);font-size:12px;text-align:center;padding:16px 10px 28px}
+
+/* alarma en vivo */
+#alarm{position:fixed;top:10px;left:50%;transform:translateX(-50%);width:min(680px,94%);z-index:90;display:none;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;color:#fff;background:var(--red);box-shadow:0 6px 24px #0004;animation:fl 1s infinite alternate}
+#alarm.amb{background:#d9731a}#alarm.blu{background:var(--pri);animation:none}#alarm.grn{background:#3f8a3a;animation:none}
+#alarm b{display:block;font-size:15px}#alarm span{font-size:13px;opacity:.95}#alarm .btn{background:#fff;border-color:#fff;color:#222}
+#alarm .x2{border:0;background:none;color:#fff;font-size:22px;cursor:pointer}
+@keyframes fl{from{box-shadow:0 0 0 0 #e1575999,0 6px 24px #0004}to{box-shadow:0 0 0 16px #e1575900,0 6px 24px #0004}}
+.feed div{padding:8px 0;border-bottom:1px solid #f1f3f6;font-size:13px;display:flex;gap:8px;align-items:flex-start}.feed i{width:9px;height:9px;border-radius:50%;margin-top:5px;flex:none}
 /* informe */
 .rep h2{margin:0}.rep .meta{color:var(--mut);font-size:12px;margin-bottom:12px}
 .rephead{display:flex;align-items:center;gap:12px;border-bottom:3px solid var(--pri);padding-bottom:10px;margin-bottom:14px}
@@ -103,7 +111,7 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:16px 10px 28px}
     <div class="ttl"><h1>Operaciones de campo · Incendios</h1><small>Lo que se está reportando en el territorio, en vivo</small></div>
     <div class="sp"></div>
     <div class="live" id="live"><i></i><span id="liveT">Conectando…</span></div>
-    <button class="btn s" id="refresh">Actualizar</button>
+    <button class="btn s" id="snd">🔕 Activar sonido</button><button class="btn s" id="refresh">Actualizar</button>
     <div class="who"><span id="who"></span><br><a href="#" id="out">Salir</a> · <a href="./" target="_blank">Abrir la app</a></div>
   </div>
   <nav id="nav">
@@ -126,6 +134,7 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:16px 10px 28px}
         <div class="maptb" id="mapf"></div><div id="map"></div></div>
       <div>
         <div class="card"><h3>Estado de los incendios</h3><div class="sub">Según el estado reportado</div><div id="gEst"></div></div>
+        <div class="card"><h3>Actividad en vivo</h3><div class="sub">Alertas, reportes, SOS y mensajes que van llegando</div><div class="feed" id="feed"><small style="color:var(--mut)">Aquí aparecerá todo lo nuevo apenas llegue.</small></div></div>
         <div class="card"><h3>Municipios con más reportes</h3><div class="sub">En el período</div><div class="hb" id="gMun"></div></div>
       </div>
     </div>
@@ -167,6 +176,7 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:16px 10px 28px}
 </main>
 <footer>Fuente de datos: reportes de campo (app Incendios Caldas), QField, NASA FIRMS, IDEAM y capas de Corpocaldas · Gobernación de Caldas</footer>
 </div>
+<div id="alarm" role="alert"><div style="flex:1"><b id="alT"></b><span id="alD"></span></div><button class="btn s" id="alGo">Ver</button><button class="x2" id="alX" aria-label="Cerrar">×</button></div>
 <aside class="dr" id="dr"></aside>
 
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -200,7 +210,7 @@ async function boot() {
   S.rol = (data && data.rol) || "ciudadano"; S.nombre = (data && data.nombre) || (S.user.email || "").split("@")[0];
   if (!isTec()) { await sb.auth.signOut(); $("#le").textContent = "Este panel es para Planeación, técnicos y coordinación."; $("#login").classList.remove("hide"); $("#app").classList.add("hide"); return; }
   $("#login").classList.add("hide"); $("#app").classList.remove("hide"); $("#who").textContent = `${S.nombre} · ${cap(S.rol)}`;
-  initMap(); await loadAll(); subscribe(); setInterval(() => { if (!document.hidden) loadAll(); }, 15000); setInterval(paintLive, 5000);
+  initMap(); await loadAll(); subscribe(); setInterval(() => { if (!document.hidden) loadAll(); }, 8000); setInterval(paintLive, 5000);
 }
 $("#go").onclick = async () => { $("#le").textContent = ""; const { error } = await sb.auth.signInWithPassword({ email: $("#em").value.trim(), password: $("#pw").value }); if (error) $("#le").textContent = error.message; else boot(); };
 $("#pw").onkeydown = e => { if (e.key === "Enter") $("#go").click(); };
@@ -217,10 +227,50 @@ async function loadAll() {
     if (r) S.rep = r.map(REP); if (a) S.al = a; if (m) S.msg = m.reverse(); if (p) S.pos = p; if (n) S.nov = n; if (pf) S.perf = pf;
     S.ok = !S.err; S.t = Date.now();
   } catch (e) { S.err = e.message; S.ok = false; }
-  loading = false; fillMun(); paintAll(); paintLive();
+  loading = false; if (S.ok) detect(); fillMun(); paintAll(); paintFeed(); paintLive();
 }
 function paintLive() { const l = $("#live"); l.classList.toggle("off", !S.ok); $("#liveT").textContent = S.ok ? `En vivo · actualizado ${ago(S.t)}` : "Sin conexión con la base de datos" + (S.err ? ": " + S.err : ""); }
 function subscribe() { let t; sb.channel("dash").on("postgres_changes", { event: "*", schema: "public" }, () => { clearTimeout(t); t = setTimeout(loadAll, 600); }).subscribe(); }
+
+
+/* ---------- alarma en vivo ---------- */
+const EV = { prev: null, list: [], sound: (() => { try { return localStorage.getItem("snd") === "1"; } catch { return false; } })(), go: "resumen", tt: null, orig: document.title };
+let actx;
+function beep(n = 3, hz = 880) { if (!EV.sound) return; try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); for (let i = 0; i < n; i++) { const o = actx.createOscillator(), g = actx.createGain(); o.type = "square"; o.frequency.value = hz + (i % 2) * 220; g.gain.value = .12; o.connect(g); g.connect(actx.destination); const t = actx.currentTime + i * .28; o.start(t); o.stop(t + .2); } } catch { } }
+function paintSnd() { $("#snd").textContent = EV.sound ? "🔔 Sonido activo" : "🔕 Activar sonido"; }
+$("#snd").onclick = () => { EV.sound = !EV.sound; try { localStorage.setItem("snd", EV.sound ? "1" : "0"); } catch { } if (EV.sound) { beep(2); if ("Notification" in window && Notification.permission === "default") Notification.requestPermission(); } paintSnd(); };
+paintSnd();
+const LV = { red: "#e15759", amb: "#f28e2b", blu: "#4e79a7", grn: "#59a14f" };
+function snapshot() { return { al: new Map(S.al.map(a => [a.id, a.estado + "|" + (a.asignado_a || "")])), rep: new Set(S.rep.map(r => r.id)), msg: new Set(S.msg.map(m => m.id)), nov: new Set(S.nov.map(n => n.id)) }; }
+function detect() {
+  const cur = snapshot(), p = EV.prev, me = S.user.id; EV.prev = cur; if (!p) return;
+  const ev = [];
+  S.al.forEach(a => {
+    if (!p.al.has(a.id)) { if (a.estado === "nueva") ev.push({ t: "ALERTA ENTRANTE", d: `${a.titulo}${a.municipio ? " · " + a.municipio : ""}`, go: "alertas", l: "red" }); }
+    else if (p.al.get(a.id) !== a.estado + "|" + (a.asignado_a || "")) {
+      if (["asignada", "en_camino"].includes(a.estado)) ev.push({ t: a.estado === "en_camino" ? "Alerta: va en camino" : "Alerta tomada", d: `${a.asignado_nombre || "Alguien"} · ${a.titulo}`, go: "alertas", l: "amb" });
+      else if (a.estado === "verificada") ev.push({ t: "Alerta verificada", d: a.titulo, go: "alertas", l: "grn" });
+    }
+  });
+  S.rep.forEach(r => { if (!p.rep.has(r.id)) ev.push({ t: "NUEVO REPORTE DE INCENDIO", d: lugar(r) + (r.val === "pendiente" ? " · por validar" : ""), go: "reportes", l: "red" }); });
+  S.msg.forEach(m => { if (!p.msg.has(m.id) && m.autor_id !== me) ev.push(m.tipo === "sos" ? { t: "SOS", d: `${m.autor_nombre || ""}: ${m.texto || "pide ayuda"}`, go: "chat", l: "red" } : { t: "Mensaje nuevo", d: `${m.autor_nombre || ""}: ${m.texto || ""}`, go: "chat", l: "blu" }); });
+  S.nov.forEach(n => { if (!p.nov.has(n.id)) ev.push({ t: "Novedad de ronda", d: `${n.autor_nombre || ""} · ${n.tipo || ""}`, go: "equipo", l: "blu" }); });
+  if (ev.length) fire(ev);
+}
+function fire(ev) {
+  ev.forEach(e => EV.list.unshift({ ...e, at: Date.now() })); EV.list = EV.list.slice(0, 25);
+  const top = ev.find(e => e.l === "red") || ev.find(e => e.l === "amb") || ev[0], more = ev.length > 1 ? ` (+${ev.length - 1} más)` : "";
+  const a = $("#alarm"); a.className = top.l; a.style.display = "flex"; $("#alT").textContent = top.t + more; $("#alD").textContent = top.d; EV.go = top.go;
+  if (top.l === "red") beep(4); else if (top.l === "amb") beep(2, 660); else if (top.l === "blu") beep(1, 600);
+  if (top.l !== "grn") { clearInterval(EV.tt); let on = 0; EV.tt = setInterval(() => { document.title = on++ % 2 ? EV.orig : "🔴 " + top.t; }, 900); }
+  if ("Notification" in window && Notification.permission === "granted" && document.hidden) { try { new Notification(top.t, { body: top.d }); } catch { } }
+  if (top.l !== "red") setTimeout(() => { if ($("#alT").textContent.startsWith(top.t)) $("#alarm").style.display = "none"; }, 12000);
+  paintFeed();
+}
+function paintFeed() { const f = $("#feed"); if (!f || !EV.list.length) return; f.innerHTML = EV.list.map(e => `<div><i style="background:${LV[e.l]}"></i><div><b>${esc(e.t)}</b> <span style="color:var(--mut)">· ${ago(e.at)}</span><br>${esc(e.d)}</div></div>`).join(""); }
+function stopAlarm() { $("#alarm").style.display = "none"; clearInterval(EV.tt); document.title = EV.orig; }
+$("#alX").onclick = stopAlarm; $("#alGo").onclick = () => { stopAlarm(); go(EV.go); };
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { clearInterval(EV.tt); document.title = EV.orig; } });
 
 /* ---------- filtros ---------- */
 function fillMun() { const s = $("#fMun"), cur = s.value, set = new Set(S.rep.map(r => r.municipio).filter(Boolean).concat(S.al.map(a => a.municipio).filter(Boolean))); s.innerHTML = '<option value="">Todos</option>' + [...set].sort().map(m => `<option ${m === cur ? "selected" : ""}>${esc(m)}</option>`).join(""); s.value = cur; }
