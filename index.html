@@ -590,7 +590,8 @@ $("#repSend").onclick = async () => {
   S.reportes.unshift({ ...row, fotos: f.fotos.map(b => URL.createObjectURL(b)) });
   await enqueue(C.TABLA_REPORTES, row, f.fotos);
   if (!ONLINE && row.estado_validacion === "pendiente") await DB.insert(C.TABLA_ALERTAS, { id: uid(), created_at: row.created_at, fuente: "ciudadano", titulo: "Reporte por verificar: " + row.municipio, descripcion: row.observaciones, lat: row.lat, lon: row.lon, municipio: row.municipio, vereda: row.vereda, prioridad: "alta", estado: "nueva", reporte_id: row.id, fotos: [] });
-  S.form = null; toast(navigator.onLine || !ONLINE ? "Reporte enviado" : "Guardado: se enviará cuando haya señal", 3500);
+  S.form = null; let w8 = 0; if (ONLINE && navigator.onLine) while (S.cola > 0 && !S.lastErr && w8++ < 25) await new Promise(r => setTimeout(r, 300));
+  if (S.lastErr && S.cola > 0) toast("El reporte quedó guardado pero NO se pudo enviar: " + S.lastErr, 12000); else toast(navigator.onLine || !ONLINE ? "Reporte enviado" : "Guardado: se enviará cuando haya señal", 3500);
   go("mapa"); paintMap(); map.setView([row.lat, row.lon], 14);
   } catch (e) { toast("No se pudo guardar el reporte: " + (e && e.message || e), 6000); } finally { repSending = false; sbtn.disabled = false; sbtn.innerHTML = stxt; }
 };
